@@ -1,0 +1,80 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="assets">
+        <item>BTS</item>
+        <item>CNY</item>
+        <item>USD</item>
+        <item>EOS</item>
+        <item>BTC</item>
+        <item>ETH</item>
+        <item>YOYOW</item>
+    </string-array>
+
+    <string-array name="quotation_currency_pair_options">
+        <item>BTS:USD</item>
+        <item>BTS:CNY</item>
+        <item>BTC:BTS</item>
+        <item>BTC:USD</item>
+        <item>BTC:CNY</item>
+        <item>ETH:BTS</item>
+        <item>ETH:USD</item>
+        <item>ETH:CNY</item>
+        <item>HERO:BTS</item>
+        <item>OBITS:BTS</item>
+        <item>SMOKE:BTS</item>
+        <item>USDT:USD</item>
+        <item>OCT:CNY</item>
+        <item>YOYOW:CNY</item>
+        <item>DASH:BTS</item>
+    </string-array>
+
+    <string-array name="quotation_currency_pair_values">
+        <item>BTS:USD</item>
+        <item>BTS:CNY</item>
+        <item>OPEN.BTC:BTS</item>
+        <item>OPEN.BTC:USD</item>
+        <item>OPEN.BTC:CNY</item>
+        <item>OPEN.ETH:BTS</item>
+        <item>OPEN.ETH:USD</item>
+        <item>OPEN.ETH:CNY</item>
+        <item>HERO:BTS</item>
+        <item>OBITS:BTS</item>
+        <item>SMOKE:BTS</item>
+        <item>OPEN.USDT:USD</item>
+        <item>OCT:CNY</item>
+        <item>YOYOW:CNY</item>
+        <item>OPEN.DASH:BTS</item>
+    </string-array>
+
+    <string-array name="full_node_api_server_options">
+        <item>Autoselect</item>
+        <item>Openledger (Nuremberg, Germany)</item>
+        <item>Openledger (Berlin, Germany)</item>
+        <item>Btsabc (Hong Kong)</item>
+        <item>Transwiser (Hangzhou, China)</item>
+        <item>Dacplay (Hangzhou, China)</item>
+        <item>Wancloud (China)</item>
+        <item>Openledger (Hong Kong)</item>
+        <item>Freedomledger (Toronto, Canada)</item>
+        <item>Dexnode (Dallas, USA)</item>
+        <item>Altcap (Paris, France)</item>
+        <item>Crypto.Fans (Munich, Germany)</item>
+    </string-array>
+
+    <string-array name="full_node_api_server_values">
+        <item>autoselect</item>
+        <item>wss://bitshares.openledger.info/ws</item>
+        <item>wss://eu.openledger.info/ws</item>
+        <item>wss://bit.btsabc.org/ws</item>
+        <item>wss://bts.transwiser.com/ws</item>
+        <item>wss://bitshares.dacplay.org/ws</item>
+        <item>wss://bitshares-api.wancloud.io/ws</item>
+        <item>wss://openledger.hk/ws</item>
+        <item>wss://secure.freedomledger.com/ws</item>
+        <item>wss://dexnode.net/ws</item>
+        <item>wss://altcap.io/ws</item>
+        <item>wss://bitshares.crypto.fans/ws</item>
+    </string-array>
+
+
+</resources>
