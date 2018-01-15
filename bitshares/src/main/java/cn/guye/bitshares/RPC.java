@@ -36,8 +36,10 @@ public class RPC {
 
 
     public static long login(BtsApi api , String uid , String pwd){
+        ArrayList<Serializable> params = new ArrayList<>();
         String[] param = new String[]{uid,pwd};
-        return api.call(1,CALL_LOGIN ,param);
+        params.add(param);
+        return api.call(1,CALL_LOGIN ,params);
     }
 
     public static long lookup_asset_symbols(BtsApi api , String[] ids ){
@@ -65,16 +67,22 @@ public class RPC {
 
     public static long database(BtsApi api) {
         ArrayList<Serializable> params = new ArrayList<>();
+        String[] param = new String[0];
+        params.add(param);
         return api.call(1,CALL_DATABASE ,params);
     }
 
     public static long history(BtsApi api) {
         ArrayList<Serializable> params = new ArrayList<>();
+        String[] param = new String[0];
+        params.add(param);
         return api.call(1,CALL_HISTORY ,params);
     }
 
     public static long network_broadcast(BtsApi api) {
         ArrayList<Serializable> params = new ArrayList<>();
+        String[] param = new String[0];
+        params.add(param);
         return api.call(1,CALL_NETWORK_BROADCAST ,params);
     }
 }

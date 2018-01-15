@@ -1,122 +1,103 @@
 package cn.guye.bts;
 
-import android.app.Activity;
-
-import android.app.ActionBar;
-import android.app.Fragment;
-import android.app.FragmentManager;
-import android.content.Context;
-import android.os.Build;
 import android.os.Bundle;
-import android.view.Gravity;
-import android.view.LayoutInflater;
-import android.view.Menu;
+import android.support.annotation.NonNull;
+import android.support.design.widget.BottomNavigationView;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentManager;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v7.app.AppCompatActivity;
 import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.support.v4.widget.DrawerLayout;
-import android.view.Window;
-import android.widget.ArrayAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
-public class MainActivity extends Activity
-        implements NavigationDrawerFragment.NavigationDrawerCallbacks {
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
 
-    /**
-     * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
-     */
-    private NavigationDrawerFragment mNavigationDrawerFragment;
+import cn.guye.bitshares.BtsApi;
+import cn.guye.bts.contorl.BtsContorler;
+import cn.guye.bts.view.CustomDialog;
+import cn.guye.tools.jrpclib.JRpc;
+import cn.guye.tools.jrpclib.RpcNotice;
 
-    /**
-     * Used to store the last screen title. For use in {@link #restoreActionBar()}.
-     */
-    private CharSequence mTitle;
+public class MainActivity extends AppCompatActivity {
+
+    private Class[] tabClass = {WalletFragment.class,MarketFragment.class, MyAccountFrament.class};
+    private CustomDialog dialog ;
+
+    private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
+            = new BottomNavigationView.OnNavigationItemSelectedListener() {
+
+        @Override
+        public boolean onNavigationItemSelected(@NonNull MenuItem item) {
+            int index = item.getOrder();
+
+            currentTabIndex = index;
+            switchTab(index);
+            return true;
+        }
+    };
+    private int currentTabIndex;
+    private Fragment currentFragment;
+
+    private void switchTab(int position){
+        currentTabIndex = position;
+        FragmentManager fragmentManager = getSupportFragmentManager();
+        FragmentTransaction transaction = fragmentManager.beginTransaction();
+        if(currentFragment != null){
+            transaction.hide(currentFragment);
+        }
+        Fragment toFragment = fragmentManager.findFragmentByTag(String.valueOf(position));
+        if(toFragment == null){
+            toFragment = Fragment.instantiate(this,tabClass[position].getName());
+            transaction.add(R.id.main_content,toFragment,String.valueOf(position));
+        }else{
+            transaction.show(toFragment);
+        }
+        currentFragment = toFragment;
+        if(!MainActivity.this.isFinishing()){
+            transaction.commitAllowingStateLoss();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        EventBus.getDefault().unregister(this);
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-
-        setContentView(R.layout.activity_main_layout);
-
-        mNavigationDrawerFragment = (NavigationDrawerFragment)
-                getFragmentManager().findFragmentById(R.id.navigation_drawer);
-        mTitle = getTitle();
-
-        // Set up the drawer.
-        mNavigationDrawerFragment.setUp(
-                R.id.navigation_drawer,
-                (DrawerLayout) findViewById(R.id.drawer_layout));
+        setContentView(R.layout.activity_main);
+        EventBus.getDefault().register(this);
+        BottomNavigationView navigation = (BottomNavigationView) findViewById(R.id.navigation);
+        navigation.setOnNavigationItemSelectedListener(mOnNavigationItemSelectedListener);
+        switchTab(currentTabIndex);
     }
 
     @Override
-    public void onNavigationDrawerItemSelected(int position) {
-        // update the main content by replacing fragments
-        FragmentManager fragmentManager = getFragmentManager();
-        fragmentManager.beginTransaction()
-                .replace(R.id.container, PlaceholderFragment.newInstance(position + 1))
-                .commit();
+    protected void onResume() {
+        super.onResume();
+        BtsContorler contorler = BtsContorler.getInstance();
+        contorler.start();
+        dialog = new CustomDialog(this, R.style.CustomDialog);
+        dialog.show();
     }
 
-    public void onSectionAttached(int number) {
-        switch (number) {
-            case 1:
-                mTitle = getString(R.string.title_section1);
-                break;
-            case 2:
-                mTitle = getString(R.string.title_section2);
-                break;
-            case 3:
-                mTitle = getString(R.string.title_section3);
-                break;
-        }
-    }
 
-    public void restoreActionBar() {
-        ActionBar actionBar = getActionBar();
-        actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_STANDARD);
-        actionBar.setDisplayShowTitleEnabled(true);
-        actionBar.setTitle(mTitle);
-    }
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void messageEventBus(BtsContorler.BtsConnectEvent e){
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
-        private static final String ARG_SECTION_NUMBER = "section_number";
+            if(dialog != null && dialog.isShowing()){
+                dialog.dismiss();
+            }
 
-        public PlaceholderFragment() {
-        }
+            if(e.status != BtsApi.STATUS_CONNECTED){
+                Toast.makeText(this,e.desc,Toast.LENGTH_SHORT).show();
+            }
 
-        /**
-         * Returns a new instance of this fragment for the given section
-         * number.
-         */
-        public static PlaceholderFragment newInstance(int sectionNumber) {
-            PlaceholderFragment fragment = new PlaceholderFragment();
-            Bundle args = new Bundle();
-            args.putInt(ARG_SECTION_NUMBER, sectionNumber);
-            fragment.setArguments(args);
-            return fragment;
-        }
-
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_main, container, false);
-            return rootView;
-        }
-
-        @Override
-        public void onAttach(Activity activity) {
-            super.onAttach(activity);
-            ((MainActivity) activity).onSectionAttached(
-                    getArguments().getInt(ARG_SECTION_NUMBER));
-        }
     }
 
 }

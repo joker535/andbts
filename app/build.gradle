@@ -1,25 +1,49 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 23
-    buildToolsVersion "23.0.3"
+    compileSdkVersion 26
+    buildToolsVersion "26.0.2"
     defaultConfig {
         applicationId "cn.guye.bts"
         minSdkVersion 14
-        targetSdkVersion 23
+        targetSdkVersion 26
         versionCode 1
         versionName "1.0"
+        vectorDrawables.useSupportLibrary = true
+        multiDexEnabled true
+        jackOptions{
+            enabled true
+        }
     }
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+    dexOptions {
+        incremental true
+
+        preDexLibraries = false
+
+        jumboMode = false
+
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     productFlavors {
     }
 }
 
 dependencies {
-    compile 'com.android.support:support-v4:23.4.0'
+    compile 'com.android.support:support-v4:26+'
+    compile 'com.android.support:design:26+'
+    compile 'com.android.support.constraint:constraint-layout:1.0.2'
+    compile 'com.android.support:support-vector-drawable:26+'
+    compile 'org.greenrobot:eventbus:3.0.0'
+    compile project(':bitshares')
 }

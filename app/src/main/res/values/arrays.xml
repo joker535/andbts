@@ -1,5 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <string-array name="matkets">
+        <item>CNY</item>
+        <item>USD</item>
+        <item>BTC</item>
+    </string-array>
+
     <string-array name="assets">
         <item>BTS</item>
         <item>CNY</item>

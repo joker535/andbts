@@ -3,7 +3,7 @@ package cn.guye.bitshares.models;
 import com.google.common.primitives.Bytes;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import org.bitcoinj.core.ECKey;
+
 import org.spongycastle.math.ec.ECPoint;
 
 import java.security.MessageDigest;
@@ -11,6 +11,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
 import cn.guye.bitshares.Util;
+import cn.guye.bitshares.crypto.ECKey;
 import cn.guye.bitshares.errors.ChecksumException;
 
 /**

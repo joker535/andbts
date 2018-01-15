@@ -21,14 +21,15 @@ public class JRpcImpl implements JRpc {
 	private String url;
 	private RpcHandle handle;
 	private Map<Long, RpcCall> paddingCall = new LinkedHashMap<>(1000);
-	private Gson gson; 
+	private Gson gson;
+	private RpcNoticeHandle rpcNoticeHandle;
 
 	public JRpcImpl(String url, RpcHandle handle) {
 		wsConncetion = new WsConncetion();
 		wsListener = new WsListener();
 		this.url = url;
 		this.handle = handle;
-		gson = new GsonBuilder()
+		gson = new GsonBuilder().serializeNulls()
 		        .excludeFieldsWithoutExposeAnnotation()
 		        .create();
 	}
@@ -45,13 +46,13 @@ public class JRpcImpl implements JRpc {
 			paddingCall.put(call.getId(), call);
 		}
 		wsConncetion.send(gson.toJson(call));
+		System.out.println(gson.toJson(call));
 		return call.getId();
 	}
 
 	@Override
 	public void setNoticeHandle(RpcNoticeHandle noticeHandle) {
-		// TODO Auto-generated method stub
-
+		rpcNoticeHandle = noticeHandle;
 	}
 
 	@Override
@@ -94,6 +95,7 @@ public class JRpcImpl implements JRpc {
 			JsonElement id = jsonElement.getAsJsonObject().get("id");
 			if (id == null) {
 				rpcObject = gson.fromJson(jsonElement, RpcNotice.class);
+				rpcNoticeHandle.onNotice((RpcNotice) rpcObject);
 			} else {
 				rpcObject = gson.fromJson(jsonElement, RpcReturn.class);
 				RpcCall call = getCall(rpcObject.getId());

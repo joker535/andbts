@@ -1,9 +1,10 @@
 package cn.guye.bitshares.models;
 
-import org.bitcoinj.core.ECKey;
 import org.spongycastle.math.ec.ECPoint;
 
 import java.io.Serializable;
+
+import cn.guye.bitshares.crypto.ECKey;
 
 
 /**
