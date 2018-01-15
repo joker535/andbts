@@ -47,7 +47,7 @@ public class BtsApi {
     }
 
     public interface DataListener{
-        public void onResult(JsonElement result);
+        public void onResult(RpcReturn result);
         public void onError();
         public void onDataChange();
     }
@@ -137,7 +137,7 @@ public class BtsApi {
                     }
                 }else{
                     for (DataListener dl:dataLinstener) {
-                        dl.onResult(result.getResult());
+                        dl.onResult(result);
                     }
                 }
             }

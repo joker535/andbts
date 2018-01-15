@@ -2,17 +2,21 @@ package cn.guye.bts.contorl;
 
 
 
+import com.google.gson.JsonElement;
+
 import org.greenrobot.eventbus.EventBus;
 
 import cn.guye.bitshares.BtsApi;
+import cn.guye.bitshares.RPC;
 import cn.guye.bts.data.DataCenter;
 import cn.guye.tools.jrpclib.RpcNotice;
+import cn.guye.tools.jrpclib.RpcReturn;
 
 /**
  * Created by nieyu2 on 18/1/15.
  */
 
-public class BtsContorler implements BtsApi.BtsRpcListener {
+public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener {
 
     private DataCenter dataCenter;
     private EventBus eventBus = EventBus.getDefault();
@@ -20,6 +24,7 @@ public class BtsContorler implements BtsApi.BtsRpcListener {
         dataCenter = new DataCenter();
         api = new BtsApi("wss://bitshares-api.wancloud.io/ws");
         api.addBtsListener(this);
+        api.addDataListener(this);
     }
     private static BtsContorler instance;
 
@@ -58,13 +63,27 @@ public class BtsContorler implements BtsApi.BtsRpcListener {
     }
 
     @Override
+    public void onResult(RpcReturn result) {
+        EventBus.getDefault().post(result);
+    }
+
+    @Override
     public void onError() {
         eventBus.post(new BtsConnectEvent(api.getStatus(),"error"));
     }
 
     @Override
+    public void onDataChange() {
+
+    }
+
+    @Override
     public void onNotice(RpcNotice rpcNotice) {
         eventBus.post(rpcNotice);
+    }
+
+    public void look_up_assets(String[] assets) {
+        RPC.lookup_asset_symbols(api,assets);
     }
 
     public static class BtsConnectEvent{

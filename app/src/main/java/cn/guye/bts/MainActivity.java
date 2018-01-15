@@ -81,9 +81,11 @@ public class MainActivity extends AppCompatActivity {
     protected void onResume() {
         super.onResume();
         BtsContorler contorler = BtsContorler.getInstance();
-        contorler.start();
-        dialog = new CustomDialog(this, R.style.CustomDialog);
-        dialog.show();
+        if(contorler.getStatus() != BtsApi.STATUS_CONNECTED){//TODO more switch
+            contorler.start();
+            dialog = new CustomDialog(this, R.style.CustomDialog);
+            dialog.show();
+        }
     }
 
 
