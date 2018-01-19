@@ -4,6 +4,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+
 
 import cn.guye.bitshares.models.Asset;
 import cn.guye.bitshares.models.GrapheneObject;
@@ -17,6 +22,13 @@ public class DataCenter {
     public static final String TYPE_ASSET = "ASSET";
 
     private Map<ObjectType, Map<String , GrapheneObject>> datas = new HashMap<>(10);
+
+    private ExecutorService poolExecutor;
+
+    public DataCenter() {
+        poolExecutor = Executors.newFixedThreadPool(3);
+       
+    }
 
 
     public void addData(GrapheneObject data){

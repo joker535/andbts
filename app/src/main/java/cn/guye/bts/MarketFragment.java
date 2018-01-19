@@ -115,8 +115,10 @@ public class MarketFragment extends BaseFragment {
                 BucketObject[] bucketObjects = (BucketObject[]) r.result;
                 if(bucketObjects != null && bucketObjects.length != 0){
                     HistoryPrice p = getPrice(bucketObjects);
-                    prices.put(p.close.base.getAsset().getObjectId().equals(cny.getObjectId()) ? p.close.quote.getAsset().getObjectId() : p.close.base.getAsset().getObjectId(), p);
-                    adapter.notifyDataSetChanged();
+                    if(p != null){
+                        prices.put(p.close.base.getAsset().getObjectId().equals(cny.getObjectId()) ? p.close.quote.getAsset().getObjectId() : p.close.base.getAsset().getObjectId(), p);
+                        adapter.notifyDataSetChanged();
+                    }
                 }
             } else if (r.method.equals(RPC.CALL_GET_TRADE_HISTORY)) {
                 MarketTrade[] marketTrades = (MarketTrade[]) r.result;
@@ -128,6 +130,11 @@ public class MarketFragment extends BaseFragment {
     private HistoryPrice getPrice(BucketObject[] bucketObjects) {
         HistoryPrice prices = new HistoryPrice();
         BucketObject last = bucketObjects[bucketObjects.length-1];
+
+        if(assets.get(last.key.base.getObjectId()) == null || assets.get(last.key.quote.getObjectId()) == null){
+            return null;
+        }
+
         prices.high = new Price();
         prices.high.base = new AssetAmount(last.high_base,assets.get(last.key.base.getObjectId()));
         prices.high.quote = new AssetAmount(last.high_quote,assets.get(last.key.quote.getObjectId()));
@@ -187,30 +194,25 @@ public class MarketFragment extends BaseFragment {
 //        return price;
 //    }
 
-    private static double findMax(double a, double b) {
-        if (a != Double.POSITIVE_INFINITY && b != Double.POSITIVE_INFINITY) {
-            return Math.max(a, b);
-        } else if (a == Double.POSITIVE_INFINITY) {
-            return b;
-        } else {
-            return a;
-        }
-    }
-
-    private static double findMin(double a, double b) {
-        if (a != 0 && b != 0) {
-            return Math.min(a, b);
-        } else if (a == 0) {
-            return b;
-        } else {
-            return a;
-        }
-    }
-
-    public static BigDecimal get_scaled_precision(Asset asset) {
-
-        return new BigDecimal("1E-"+asset.getPrecision());
-    }
+//    private static double findMax(double a, double b) {
+//        if (a != Double.POSITIVE_INFINITY && b != Double.POSITIVE_INFINITY) {
+//            return Math.max(a, b);
+//        } else if (a == Double.POSITIVE_INFINITY) {
+//            return b;
+//        } else {
+//            return a;
+//        }
+//    }
+//
+//    private static double findMin(double a, double b) {
+//        if (a != 0 && b != 0) {
+//            return Math.min(a, b);
+//        } else if (a == 0) {
+//            return b;
+//        } else {
+//            return a;
+//        }
+//    }
 
     private class MarketAdapter extends BaseAdapter{
         private EmptyView emptyView = new EmptyView(getContext());
