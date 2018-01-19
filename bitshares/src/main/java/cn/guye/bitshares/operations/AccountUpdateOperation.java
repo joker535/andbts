@@ -1,11 +1,12 @@
 package cn.guye.bitshares.operations;
 
 import com.google.common.primitives.Bytes;
-import com.google.common.primitives.UnsignedLong;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+
+import java.math.BigDecimal;
 
 import cn.guye.bitshares.models.AccountOptions;
 import cn.guye.bitshares.models.Asset;
@@ -51,7 +52,7 @@ public class AccountUpdateOperation extends BaseOperation {
     }
 
     public AccountUpdateOperation(UserAccount account, Authority owner, Authority active, AccountOptions options){
-        this(account, owner, active, options, new AssetAmount(UnsignedLong.valueOf(0), new Asset("1.3.0")));
+        this(account, owner, active, options, new AssetAmount(BigDecimal.valueOf(0), new Asset("1.3.0")));
     }
 
     @Override

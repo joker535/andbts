@@ -17,6 +17,8 @@ import java.io.DataOutput;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.RoundingMode;
 
 import cn.guye.bitshares.Util;
@@ -33,10 +35,10 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
     public static final String KEY_AMOUNT = "amount";
     public static final String KEY_ASSET_ID = "asset_id";
 
-    private UnsignedLong amount;
+    private BigDecimal amount;
     private Asset asset;
 
-    public AssetAmount(UnsignedLong amount, Asset asset){
+    public AssetAmount(BigDecimal amount, Asset asset){
         this.amount = amount;
         this.asset = asset;
     }
@@ -50,7 +52,7 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
         if(!this.getAsset().getObjectId().equals(other.getAsset().getObjectId())){
             throw new IncompatibleOperation("Cannot add two AssetAmount instances that refer to different assets");
         }
-        UnsignedLong combined = this.amount.plus(other.getAmount());
+        BigDecimal combined = this.amount.add(other.getAmount());
         return new AssetAmount(combined, asset);
     }
 
@@ -60,48 +62,38 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
      * @return: A new instance of the AssetAmount class with the added aditional.
      */
     public AssetAmount add(long additional){
-        UnsignedLong combined = this.amount.plus(UnsignedLong.valueOf(additional));
+        BigDecimal combined = this.amount.add(BigDecimal.valueOf(additional));
         return new AssetAmount(combined, asset);
     }
 
-    /**
-     * Subtracts another instance of AssetAmount from this one. This method will always
-     * return absolute values.
-     * @param other: The other asset amount to subtract from this.
-     * @return: The absolute value of the subtraction of the other minus this asset amount.
-     */
-    public AssetAmount subtract(AssetAmount other){
-        if(!this.getAsset().getObjectId().equals(other.getAsset().getObjectId())){
-            throw new IncompatibleOperation("Cannot subtract two AssetAmount instances that refer to different assets");
-        }
-        UnsignedLong result = null;
-        if(this.amount.compareTo(other.getAmount()) < 0){
-            result = other.getAmount().minus(this.amount);
-        }else{
-            result = this.amount.minus(other.getAmount());
-        }
-        return new AssetAmount(result, asset);
-    }
+//    /**
+//     * Subtracts another instance of AssetAmount from this one. This method will always
+//     * return absolute values.
+//     * @param other: The other asset amount to subtract from this.
+//     * @return: The absolute value of the subtraction of the other minus this asset amount.
+//     */
+//    public AssetAmount subtract(AssetAmount other){
+//        if(!this.getAsset().getObjectId().equals(other.getAsset().getObjectId())){
+//            throw new IncompatibleOperation("Cannot subtract two AssetAmount instances that refer to different assets");
+//        }
+//        UnsignedLong result = null;
+//        if(this.amount.compareTo(other.getAmount()) < 0){
+//            result = other.getAmount().minus(this.amount);
+//        }else{
+//            result = this.amount.minus(other.getAmount());
+//        }
+//        return new AssetAmount(result, asset);
+//    }
 
     /**
      * Multiplies the current amount by a factor provided as the first parameter. The second parameter
      * specifies the rounding method to be used.
      * @param factor: The multiplying factor
-     * @param roundingMode: The rounding mode as an instance of the {@link RoundingMode} class
      * @return The same AssetAmount instance, but with the changed amount value.
      */
-    public AssetAmount multiplyBy(double factor, RoundingMode roundingMode){
-        this.amount = UnsignedLong.valueOf(DoubleMath.roundToLong(this.amount.longValue() * factor, roundingMode));
+    public AssetAmount multiplyBy(BigDecimal factor){
+        this.amount = amount.multiply(factor);
         return this;
-    }
-
-    /**
-     * Multiplies the current amount by a factor, using the {@link RoundingMode#HALF_DOWN} constant.
-     * @param factor: The multiplying factor
-     * @return The same AssetAmount instance, but with the changed amount value.
-     */
-    public AssetAmount multiplyBy(double factor){
-        return this.multiplyBy(factor, RoundingMode.HALF_DOWN);
     }
 
     /**
@@ -110,27 +102,16 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
      * @param divisor: The divisor
      * @return: The same AssetAMount instance, but with the divided amount value
      */
-    public AssetAmount dividedBy(double divisor, RoundingMode roundingMode){
-        this.amount = UnsignedLong.valueOf(DoubleMath.roundToLong(this.amount.longValue() / divisor, roundingMode));
+    public AssetAmount dividedBy(BigDecimal divisor){
+        this.amount = amount.divide(divisor,asset.getPrecision(),BigDecimal.ROUND_HALF_DOWN);
         return this;
     }
 
-
-    /**
-     * Divides the current amount by a divisor provided as the first parameter, using
-     * the {@link RoundingMode#HALF_DOWN} constant
-     * @param divisor: The divisor
-     * @return: The same AssetAMount instance, but with the divided amount value
-     */
-    public AssetAmount dividedBy(double divisor){
-        return this.dividedBy(divisor, RoundingMode.HALF_DOWN);
-    }
-
-    public void setAmount(UnsignedLong amount){
+    public void setAmount(BigDecimal amount){
         this.amount = amount;
     }
 
-    public UnsignedLong getAmount(){
+    public BigDecimal getAmount(){
         return this.amount;
     }
 
@@ -191,7 +172,7 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
         public AssetAmount deserialize(JsonElement json, Type type, JsonDeserializationContext jsonDeserializationContext) throws JsonParseException {
             Long amount = json.getAsJsonObject().get(KEY_AMOUNT).getAsLong();
             String assetId = json.getAsJsonObject().get(KEY_ASSET_ID).getAsString();
-            AssetAmount assetAmount = new AssetAmount(UnsignedLong.valueOf(amount), new Asset(assetId));
+            AssetAmount assetAmount = new AssetAmount(BigDecimal.valueOf(amount), new Asset(assetId));
             return assetAmount;
         }
     }
