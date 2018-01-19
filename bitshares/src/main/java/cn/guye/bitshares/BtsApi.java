@@ -1,7 +1,10 @@
 package cn.guye.bitshares;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
+import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -61,7 +64,7 @@ public class BtsApi {
     }
 
     public int getApiId(String api){
-        return 2;
+        return apiIds.get(api);
     }
 
     public int addDataListener(DataListener dataListener){
@@ -75,19 +78,19 @@ public class BtsApi {
     }
 
     public long call(int apiId , String method , Object[] param){
-        Object[] p = new Object[param.length +2];
-        p[0] = apiId;
-        p[1] = method;
-        System.arraycopy(param,0,p,2,param.length);
-        return jRpc.call(RPC.CALL,p,btsCallBack);
+        ArrayList<Serializable> params = new ArrayList<>(3);
+        params.add(0,apiId);
+        params.add(1,method);
+        params.add(2,param);
+        return jRpc.call(RPC.CALL,params.toArray(),btsCallBack);
     }
 
     public long call(int apiId , String method , List param){
-        param.add(0,apiId);
-        param.add(1,method);
-        Object[] p = new Object[param.size()];
-        param.toArray(p);
-        return jRpc.call(RPC.CALL,p,btsCallBack);
+        ArrayList params = new ArrayList<>(3);
+        params.add(0,apiId);
+        params.add(1,method);
+        params.add(2,param);
+        return jRpc.call(RPC.CALL,params.toArray(),btsCallBack);
     }
 
     private class BtsHandle implements JRpc.RpcHandle, JRpc.RpcNoticeHandle {
@@ -109,7 +112,10 @@ public class BtsApi {
 
         @Override
         public void onNotice(RpcNotice notice) {
-
+            for (BtsRpcListener bp:
+                btsHandles) {
+                bp.onNotice(notice);
+            }
         }
     }
 

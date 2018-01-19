@@ -16,4 +16,5 @@
     <string name="title_dashboard">Dashboard</string>
     <string name="title_notifications">Notifications</string>
     <string name="loading">loading</string>
+    <string name="asset_cny" >CNY</string>
 </resources>

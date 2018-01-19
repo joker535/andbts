@@ -78,6 +78,8 @@ public class GrapheneObject {
                         return ObjectType.WORKER_OBJECT;
                     case 15:
                         return ObjectType.BALANCE_OBJECT;
+                    default:
+                        return ObjectType.UNKNOWN;
                 }
             case IMPLEMENTATION_SPACE:
                 switch(type){
@@ -109,8 +111,11 @@ public class GrapheneObject {
                         return ObjectType.BUDGET_RECORD_OBJECT;
                     case 14:
                         return ObjectType.SPECIAL_AUTHORITY_OBJECT;
+                    default:
+                        return ObjectType.UNKNOWN;
                 }
+            default:
+                return ObjectType.UNKNOWN;
         }
-        return null;
     }
 }

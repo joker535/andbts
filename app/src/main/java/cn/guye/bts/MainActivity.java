@@ -31,10 +31,20 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public boolean onNavigationItemSelected(@NonNull MenuItem item) {
-            int index = item.getOrder();
 
-            currentTabIndex = index;
-            switchTab(index);
+
+            switch (item.getItemId()) {
+                case R.id.navigation_wallet:
+                    currentTabIndex = 0;
+                    break;
+                case R.id.navigation_market:
+                    currentTabIndex = 1;
+                    break;
+                case R.id.navigation_myaccount:
+                    currentTabIndex = 2;
+                    break;
+            }
+            switchTab(currentTabIndex);
             return true;
         }
     };

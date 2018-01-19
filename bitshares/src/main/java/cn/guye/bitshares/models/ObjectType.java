@@ -1,4 +1,7 @@
 package cn.guye.bitshares.models;
+
+import org.omg.CORBA.UNKNOWN;
+
 /**
  * Enum type used to list all possible object types and obtain their space + type id
  */
@@ -32,7 +35,8 @@ public enum ObjectType {
     CHAIN_PROPERTY_OBJECT,
     WITNESS_SCHEDULE_OBJECT,
     BUDGET_RECORD_OBJECT,
-    SPECIAL_AUTHORITY_OBJECT;
+    SPECIAL_AUTHORITY_OBJECT,
+    UNKNOWN;
 
     private int getSpace(){
         int space = 1;
@@ -178,4 +182,6 @@ public enum ObjectType {
     public String getGenericObjectId(){
         return String.format("%d.%d.0", getSpace(), getType());
     }
+
+
 }

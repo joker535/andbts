@@ -10,9 +10,9 @@ android {
         versionCode 1
         versionName "1.0"
         vectorDrawables.useSupportLibrary = true
-        multiDexEnabled true
+//        multiDexEnabled true
         jackOptions{
-            enabled true
+            enabled false
         }
     }
     buildTypes {

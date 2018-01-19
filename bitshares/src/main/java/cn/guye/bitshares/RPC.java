@@ -4,8 +4,8 @@ import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-
-import cn.guye.bitshares.models.Asset;
+import java.util.List;
+import java.util.TimeZone;
 
 public class RPC {
     public static final String CALL = "call";
@@ -33,13 +33,12 @@ public class RPC {
     public static final String CALL_GET_TRADE_HISTORY = "get_trade_history";
     public static final String CALL_GET_MARKET_HISTORY = "get_market_history";
     public static final String CALL_GET_ALL_ASSET_HOLDERS = "get_all_asset_holders";
+    public static final String CALL_SUBSCRIBE_TO_MARKET = "subscribe_to_market";
 
 
     public static long login(BtsApi api , String uid , String pwd){
-        ArrayList<Serializable> params = new ArrayList<>();
         String[] param = new String[]{uid,pwd};
-        params.add(param);
-        return api.call(1,CALL_LOGIN ,params);
+        return api.call(1,CALL_LOGIN ,param);
     }
 
     public static long lookup_asset_symbols(BtsApi api , String[] ids ){
@@ -53,36 +52,61 @@ public class RPC {
         params.add(name);
         return api.call(api.getApiId(CALL_DATABASE),CALL_GET_ACCOUNT_BY_NAME ,params);
     }
+
+    public static long set_subscribe_callback(BtsApi api ){
+        ArrayList<Serializable> params = new ArrayList<>();
+        params.add(Short.MAX_VALUE);
+        params.add(Boolean.TRUE);
+        return api.call(api.getApiId(CALL_DATABASE),CALL_SET_SUBSCRIBE_CALLBACK ,params);
+    }
+
+    public static long subscribe_to_market(BtsApi api , String base, String quote){
+        ArrayList<Serializable> params = new ArrayList<>();
+        params.add(Short.MAX_VALUE-1);
+        params.add(base);
+        params.add(quote);
+        return api.call(api.getApiId(CALL_DATABASE),CALL_SUBSCRIBE_TO_MARKET ,params);
+    }
     
     public static long get_market_history(BtsApi api,String base, String quote, long bucket, Date start, Date end){
         ArrayList<Serializable> params = new ArrayList<>();
         params.add(base);
         params.add(quote);
         params.add(bucket);
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        TimeZone gmtTz = TimeZone.getTimeZone("GMT");
+        dateFormat.setTimeZone(gmtTz);
         params.add(dateFormat.format(start));
         params.add(dateFormat.format(end));
         return api.call(api.getApiId(CALL_HISTORY),CALL_GET_MARKET_HISTORY ,params);
     }
 
+    public static long get_trade_history(BtsApi api, String base, String quote, Date start, Date end, int limit){
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(base);
+        listParams.add(quote);
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+        TimeZone gmtTz = TimeZone.getTimeZone("GMT");
+        dateFormat.setTimeZone(gmtTz);
+        listParams.add(dateFormat.format(start));
+        listParams.add(dateFormat.format(end));
+        listParams.add(limit);
+        return api.call(api.getApiId(CALL_DATABASE),CALL_GET_TRADE_HISTORY ,listParams);
+    }
+
+
     public static long database(BtsApi api) {
-        ArrayList<Serializable> params = new ArrayList<>();
         String[] param = new String[0];
-        params.add(param);
-        return api.call(1,CALL_DATABASE ,params);
+        return api.call(1,CALL_DATABASE ,param);
     }
 
     public static long history(BtsApi api) {
-        ArrayList<Serializable> params = new ArrayList<>();
         String[] param = new String[0];
-        params.add(param);
-        return api.call(1,CALL_HISTORY ,params);
+        return api.call(1,CALL_HISTORY ,param);
     }
 
     public static long network_broadcast(BtsApi api) {
-        ArrayList<Serializable> params = new ArrayList<>();
         String[] param = new String[0];
-        params.add(param);
-        return api.call(1,CALL_NETWORK_BROADCAST ,params);
+        return api.call(1,CALL_NETWORK_BROADCAST ,param);
     }
 }

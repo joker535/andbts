@@ -10,10 +10,11 @@
         <item>BTS</item>
         <item>CNY</item>
         <item>USD</item>
-        <item>EOS</item>
-        <item>BTC</item>
-        <item>ETH</item>
+        <item>OPEN.EOS</item>
+        <item>OPEN.BTC</item>
+        <item>OPEN.ETH</item>
         <item>YOYOW</item>
+        <item>JPY</item>
     </string-array>
 
     <string-array name="quotation_currency_pair_options">
