@@ -15,7 +15,7 @@ import java.util.Date;
 /**
  * Created by nelson on 12/22/16.
  */
-public class BucketObject {
+public class BucketObject extends GrapheneObject{
     public static final String KEY_HIGH_BASE = "high_base";
     public static final String KEY_HIGH_QUOTE = "high_quote";
     public static final String KEY_LOW_BASE = "low_base";
@@ -32,7 +32,6 @@ public class BucketObject {
     public static final String KEY_OPEN = "open";
     public static final String KEY_KEY = "key";
 
-    public String id;
     public Key key;
     public BigDecimal high_base;
     public BigDecimal high_quote;
@@ -44,6 +43,10 @@ public class BucketObject {
     public BigDecimal close_quote;
     public BigDecimal base_volume;
     public BigDecimal quote_volume;
+
+    public BucketObject(String id) {
+        super(id);
+    }
 
     public static class Key {
         public Asset base;
@@ -57,7 +60,8 @@ public class BucketObject {
         @Override
         public BucketObject deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
             JsonObject jsonBucket = json.getAsJsonObject();
-            BucketObject bucket = new BucketObject();
+            JsonElement id = jsonBucket.get("id");
+            BucketObject bucket = new BucketObject(id == null?"5.1.0":id.getAsString());
             bucket.high_base = jsonBucket.get(KEY_HIGH_BASE).getAsBigDecimal();
             bucket.high_quote = jsonBucket.get(KEY_HIGH_QUOTE).getAsBigDecimal();
             bucket.low_base = jsonBucket.get(KEY_LOW_BASE).getAsBigDecimal();

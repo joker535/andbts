@@ -36,6 +36,7 @@ public enum ObjectType {
     WITNESS_SCHEDULE_OBJECT,
     BUDGET_RECORD_OBJECT,
     SPECIAL_AUTHORITY_OBJECT,
+    BUCKET_OBJECT,
     UNKNOWN;
 
     private int getSpace(){

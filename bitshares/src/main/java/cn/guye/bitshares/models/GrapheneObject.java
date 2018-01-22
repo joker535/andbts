@@ -14,6 +14,7 @@ public class GrapheneObject {
 
     public static final int PROTOCOL_SPACE = 1;
     public static final int IMPLEMENTATION_SPACE = 2;
+    public static final int INTERNAL_MARKET = 5;
 
     @Expose
     protected String id;
@@ -111,6 +112,13 @@ public class GrapheneObject {
                         return ObjectType.BUDGET_RECORD_OBJECT;
                     case 14:
                         return ObjectType.SPECIAL_AUTHORITY_OBJECT;
+                    default:
+                        return ObjectType.UNKNOWN;
+                }
+            case INTERNAL_MARKET:
+                switch (type){
+                    case 1:
+                        return ObjectType.BUCKET_OBJECT;
                     default:
                         return ObjectType.UNKNOWN;
                 }

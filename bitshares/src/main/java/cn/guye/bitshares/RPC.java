@@ -41,60 +41,6 @@ public class RPC {
         return api.call(1,CALL_LOGIN ,param);
     }
 
-    public static long lookup_asset_symbols(BtsApi api , String[] ids ){
-        ArrayList<Serializable> params = new ArrayList<>();
-        params.add(ids);
-        return api.call(api.getApiId(CALL_DATABASE),CALL_LOOKUP_ASSET_SYMBOLS ,params);
-    }
-
-    public static long get_account_by_name(BtsApi api , String name){
-        ArrayList<Serializable> params = new ArrayList<>();
-        params.add(name);
-        return api.call(api.getApiId(CALL_DATABASE),CALL_GET_ACCOUNT_BY_NAME ,params);
-    }
-
-    public static long set_subscribe_callback(BtsApi api ){
-        ArrayList<Serializable> params = new ArrayList<>();
-        params.add(Short.MAX_VALUE);
-        params.add(Boolean.TRUE);
-        return api.call(api.getApiId(CALL_DATABASE),CALL_SET_SUBSCRIBE_CALLBACK ,params);
-    }
-
-    public static long subscribe_to_market(BtsApi api , String base, String quote){
-        ArrayList<Serializable> params = new ArrayList<>();
-        params.add(Short.MAX_VALUE-1);
-        params.add(base);
-        params.add(quote);
-        return api.call(api.getApiId(CALL_DATABASE),CALL_SUBSCRIBE_TO_MARKET ,params);
-    }
-    
-    public static long get_market_history(BtsApi api,String base, String quote, long bucket, Date start, Date end){
-        ArrayList<Serializable> params = new ArrayList<>();
-        params.add(base);
-        params.add(quote);
-        params.add(bucket);
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        TimeZone gmtTz = TimeZone.getTimeZone("GMT");
-        dateFormat.setTimeZone(gmtTz);
-        params.add(dateFormat.format(start));
-        params.add(dateFormat.format(end));
-        return api.call(api.getApiId(CALL_HISTORY),CALL_GET_MARKET_HISTORY ,params);
-    }
-
-    public static long get_trade_history(BtsApi api, String base, String quote, Date start, Date end, int limit){
-        List<Object> listParams = new ArrayList<>();
-        listParams.add(base);
-        listParams.add(quote);
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
-        TimeZone gmtTz = TimeZone.getTimeZone("GMT");
-        dateFormat.setTimeZone(gmtTz);
-        listParams.add(dateFormat.format(start));
-        listParams.add(dateFormat.format(end));
-        listParams.add(limit);
-        return api.call(api.getApiId(CALL_DATABASE),CALL_GET_TRADE_HISTORY ,listParams);
-    }
-
-
     public static long database(BtsApi api) {
         String[] param = new String[0];
         return api.call(1,CALL_DATABASE ,param);

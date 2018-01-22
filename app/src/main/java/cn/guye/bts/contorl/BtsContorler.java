@@ -1,16 +1,17 @@
 package cn.guye.bts.contorl;
 
-
-
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 
 import org.greenrobot.eventbus.EventBus;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
 
 import cn.guye.bitshares.BtsApi;
 import cn.guye.bitshares.RPC;
@@ -24,6 +25,9 @@ import cn.guye.bitshares.models.ObjectType;
 import cn.guye.bitshares.models.OperationHistory;
 import cn.guye.bitshares.models.chain.Operations;
 import cn.guye.bts.data.DataCenter;
+import cn.guye.bts.fc.crypto.sha256_object;
+import cn.guye.bts.wallet.AccountObject;
+import cn.guye.bts.wallet.types;
 import cn.guye.tools.jrpclib.JRpcError;
 import cn.guye.tools.jrpclib.RpcNotice;
 import cn.guye.tools.jrpclib.RpcReturn;
@@ -34,8 +38,37 @@ import cn.guye.tools.jrpclib.RpcReturn;
 
 public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener {
 
+    class wallet_object {
+        sha256_object chain_id;
+        List<AccountObject> my_accounts = new ArrayList<>();
+        ByteBuffer cipher_keys;
+        HashMap<String, List<types.public_key_type>> extra_keys = new HashMap<>();
+        String ws_server = "";
+        String ws_user = "";
+        String ws_password = "";
+
+        public void update_account(AccountObject accountObject) {
+            boolean bUpdated = false;
+            for (int i = 0; i < my_accounts.size(); ++i) {
+                if (my_accounts.get(i).id == accountObject.id) {
+                    my_accounts.remove(i);
+                    my_accounts.add(accountObject);
+                    bUpdated = true;
+                    break;
+                }
+            }
+
+            if (bUpdated == false) {
+                my_accounts.add(accountObject);
+            }
+        }
+    }
+
     private DataCenter dataCenter;
     private EventBus eventBus = EventBus.getDefault();
+
+    private ConcurrentHashMap<Long , BtsRequest> requests = new ConcurrentHashMap<>();
+
     private BtsContorler(){
         dataCenter = new DataCenter();
         api = new BtsApi("wss://bitshares-api.wancloud.io/ws");
@@ -60,6 +93,9 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
 
     private Gson gson;
 
+    public void regDataChange(DataCenter.DataChangeHandler handler){
+        dataCenter.addDataHandle(handler);
+    }
 
     public int getStatus(){
         return api.getStatus();
@@ -90,41 +126,19 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
         Object[] param = new Object[result.getCall().getParams().length -2];
         System.arraycopy(result.getCall().getParams(),2,param,0 ,param.length);
         if(result.getError() != null){
-            event = new BtsResultEvent(result.getId(),((String)result.getCall().getParams()[1]),param,result.getError());
-        }else{
-            if(result.getCall().getParams()[1].equals(RPC.CALL_LOOKUP_ASSET_SYMBOLS)){
-                Asset[] assets ;
-                JsonArray array = result.getResult().getAsJsonArray();
-                assets = new Asset[array.size()];
-                Asset.AssetDeserializer deserializer = new Asset.AssetDeserializer();
-                for (int i = 0 ;i< assets.length ; i++){
-                    assets[i] = deserializer.deserialize(array.get(i),Asset.class,null);
-                }
-                event = new BtsResultEvent(result.getId(),((String)result.getCall().getParams()[1]),param,assets);
-            }else if(result.getCall().getParams()[1].equals(RPC.CALL_GET_MARKET_HISTORY)){
-                BucketObject[] bucketObjects ;
-                JsonArray array = result.getResult().getAsJsonArray();
-                bucketObjects = new BucketObject[array.size()];
-                BucketObject.BucketDeserializer bucketDeserializer = new BucketObject.BucketDeserializer();
-                for (int i = 0 ;i< bucketObjects.length ; i++){
-                    bucketObjects[i] = bucketDeserializer.deserialize(array.get(i),BucketObject.class,null);
-                }
-                event = new BtsResultEvent(result.getId(),((String)result.getCall().getParams()[1]),param,bucketObjects);
-            }else if(result.getCall().getParams()[1].equals(RPC.CALL_GET_TRADE_HISTORY)){
-                MarketTrade[] marketTrades ;
-                JsonArray array = result.getResult().getAsJsonArray();
-                marketTrades = new MarketTrade[array.size()];
-                Gson gson = new Gson();
-                for (int i = 0 ;i< marketTrades.length ; i++){
-                    marketTrades[i] = gson.fromJson(array.get(i),MarketTrade.class);
-                }
-                event = new BtsResultEvent(result.getId(),((String)result.getCall().getParams()[1]),param,marketTrades);
-            }else{
-                event = null;
+            BtsRequest request = requests.get(result.getId());
+            if(request != null && request.getCallBack() != null){
+                request.getCallBack().onError(result.getError());
             }
-        }
-        if(event != null){
-            EventBus.getDefault().post(event);
+            requests.remove(request.getId());
+
+        }else{
+
+            BtsRequest request = requests.get(result.getId());
+            if(request != null && request.getCallBack() != null){
+                request.getCallBack().onResult(request, result.getResult());
+            }
+            requests.remove(request.getId());
         }
     }
 
@@ -138,48 +152,39 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
 
     }
 
+    public BtsRequest send(BtsRequest btsRequest){
+        long id = api.call(api.getApiId(btsRequest.getApi()),btsRequest.getMethod() ,btsRequest.getParams());
+        btsRequest.setId(id);
+        requests.put(id,btsRequest);
+        return btsRequest;
+    }
+
     @Override
     public void onNotice(RpcNotice rpcNotice) {
         JsonArray params = rpcNotice.getParams().getAsJsonArray();
         params = params.get(1).getAsJsonArray().get(0).getAsJsonArray();
         List<GrapheneObject> datas = new ArrayList<>();
         for (int i = 0; i < params.size(); i++) {
-            String id = params.get(i).getAsJsonObject().get("id").getAsString();
-            GrapheneObject grapheneObject = new GrapheneObject(id);
-            switch(grapheneObject.getObjectType()){
-                case ACCOUNT_TRANSACTION_HISTORY_OBJECT:
-                    AccountTransactionHistory transactionHistory = gson.fromJson(params.get(i),AccountTransactionHistory.class);
-                    datas.add(transactionHistory);
-                    break;
-                case OPERATION_HISTORY_OBJECT:
-                    OperationHistory operationHistory = gson.fromJson(params.get(i),OperationHistory.class);
-                    datas.add(operationHistory);
-                    break;
+            if(params.get(i).isJsonObject()){
+                String id = params.get(i).getAsJsonObject().get("id").getAsString();
+                GrapheneObject grapheneObject = new GrapheneObject(id);
+                switch(grapheneObject.getObjectType()){
+                    case ACCOUNT_TRANSACTION_HISTORY_OBJECT:
+                        AccountTransactionHistory transactionHistory = gson.fromJson(params.get(i),AccountTransactionHistory.class);
+                        datas.add(transactionHistory);
+                        break;
+                    case OPERATION_HISTORY_OBJECT:
+                        OperationHistory operationHistory = gson.fromJson(params.get(i),OperationHistory.class);
+                        datas.add(operationHistory);
+                        break;
+                    case BUCKET_OBJECT:
+                        BucketObject bucketObject = new BucketObject.BucketDeserializer().deserialize(params.get(i),BucketObject.class,null);
+                        datas.add(bucketObject);
+                        break;
+                }
             }
         }
-
-
-        eventBus.post(rpcNotice);
-    }
-
-    public long look_up_assets(String[] assets) {
-        return RPC.lookup_asset_symbols(api,assets);
-    }
-
-    public long get_market_history(String base, String quote, long bucket, Date start, Date end){
-        return RPC.get_market_history(api, base,quote,bucket,start,end);
-    }
-
-    public long get_trade_history( String base, String quote, Date start, Date end, int limit){
-        return RPC.get_trade_history(api, base,quote,start,end,limit);
-    }
-
-    public long set_subscribe_callback(){
-        return RPC.set_subscribe_callback(api);
-    }
-
-    public long subscribe_to_market(String base, String quote){
-        return RPC.subscribe_to_market(api,base,quote);
+        dataCenter.addData(datas);
     }
 
     public static class BtsConnectEvent{

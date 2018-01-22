@@ -20,14 +20,15 @@ import cn.guye.bitshares.models.ObjectType;
 
 public class DataCenter {
 
+
     public interface DataChangeHandler{
-        public void onDataChange(int event , GrapheneObject data);
+        public void onDataChange(int event , GrapheneObject[] data);
     }
 
-    private static final int ADD =  1;
-    private static final int UPDATE = 2;
-    private static final int DELETE = 3;
-    private static final int GET = 4;
+    public static final int ADD =  1;
+    public static final int UPDATE = 2;
+    public static final int DELETE = 3;
+    public static final int GET = 4;
     private Map<ObjectType, Map<String , GrapheneObject>> datas = new HashMap<>(10);
 
     private List<DataChangeHandler> handlers = new ArrayList<>();
@@ -39,61 +40,66 @@ public class DataCenter {
 
     }
 
+    public void addDataHandle(DataChangeHandler handler){
+        handlers.add(handler);
+    }
+
+    public void addData(List<GrapheneObject> data) {
+        Runnable runable = new Runnable(){
+
+            @Override
+            public void run() {
+
+                addDataInternal(data);
+
+            }
+        };
+        poolExecutor.execute(runable);
+    }
+
     public void addData(final GrapheneObject[] data){
         Runnable runable = new Runnable(){
 
             @Override
             public void run() {
-                for (GrapheneObject o:
-                     data) {
-                    addDataInternal(o);
-                }
-            }
-        };
-        poolExecutor.execute(runable);
-    }
-
-    public void updateData(final GrapheneObject[] data){
-        Runnable runable = new Runnable(){
-
-            @Override
-            public void run() {
-                for (GrapheneObject o:
-                        data) {
-                    updateDataInternal(o);
-                }
-            }
-        };
-        poolExecutor.execute(runable);
-    }
-
-    public void deleteData(final GrapheneObject[] data){
-        Runnable runable = new Runnable(){
-
-            @Override
-            public void run() {
-                for (GrapheneObject o:
-                        data) {
-                    deleteDataInternal(o);
-                }
+                addDataInternal(data);
             }
         };
         poolExecutor.execute(runable);
     }
 
 
-    private void addDataInternal(GrapheneObject data){
-        ObjectType type = data.getObjectType();
-        Map<String , GrapheneObject> map = datas.get(type);
-        if(map == null){
-            map = new HashMap<>();
-            datas.put(type,map);
+    private void addDataInternal(GrapheneObject[] data){
+        for (GrapheneObject o:
+             data) {
+            ObjectType type = o.getObjectType();
+            Map<String , GrapheneObject> map = datas.get(type);
+            if(map == null){
+                map = new HashMap<>();
+                datas.put(type,map);
+            }
+            map.put(o.getObjectId(),o);
         }
-        map.put(data.getObjectId(),data);
+
         postNotify(ADD ,data);
     }
 
-    private void postNotify(final int add,final GrapheneObject data) {
+    private void addDataInternal(List<GrapheneObject> data){
+        for (GrapheneObject o:
+                data) {
+            ObjectType type = o.getObjectType();
+            Map<String , GrapheneObject> map = datas.get(type);
+            if(map == null){
+                map = new HashMap<>();
+                datas.put(type,map);
+            }
+            map.put(o.getObjectId(),o);
+        }
+
+        postNotify(ADD ,data.toArray(new GrapheneObject[]{}));
+    }
+
+    private void postNotify(final int add,final GrapheneObject[] data) {
         Runnable runable = new Runnable(){
 
             @Override
@@ -107,27 +113,6 @@ public class DataCenter {
         poolExecutor.execute(runable);
     }
 
-    private void updateDataInternal(GrapheneObject data){
-        ObjectType type = data.getObjectType();
-        Map<String , GrapheneObject> map = datas.get(type);
-        if(map == null){
-            map = new HashMap<>();
-            datas.put(type,map);
-        }
-        map.put(data.getObjectId(),data);
-        postNotify(UPDATE ,data);
-    }
-
-    private void deleteDataInternal(GrapheneObject data){
-        ObjectType type = data.getObjectType();
-        Map<String , GrapheneObject> map = datas.get(type);
-        if(map == null){
-            map = new HashMap<>();
-            datas.put(type,map);
-        }
-        map.remove(data.getObjectId());
-        postNotify(DELETE ,data);
-    }
 
     public GrapheneObject getDataSync(String id){
         ObjectType type = new GrapheneObject(id).getObjectType();
@@ -147,7 +132,7 @@ public class DataCenter {
                 GrapheneObject o = getDataSync(id);
                 for (DataChangeHandler dc:
                         handlers) {
-                    dc.onDataChange(GET,o);
+                    dc.onDataChange(GET,new GrapheneObject[]{o});
                 }
             }
         };
@@ -155,25 +140,6 @@ public class DataCenter {
         return id;
     }
 
-    public String getDataAddFetch(final String id){
-        Runnable runable = new Runnable(){
-
-            @Override
-            public void run() {
-                GrapheneObject o = getDataSync(id);
-                if(o != null){
-                    for (DataChangeHandler dc:
-                            handlers) {
-                        dc.onDataChange(GET,o);
-                    }
-                }else{
-
-                }
-            }
-        };
-        poolExecutor.execute(runable);
-        return id;
-    }
 
     private void clearAll(){
         datas.clear();
