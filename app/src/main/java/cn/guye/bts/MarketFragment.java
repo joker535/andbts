@@ -162,7 +162,7 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
 
                     for (Asset asset : assets.values()) {
                         if (!asset.getSymbol().equals(getResources().getString(R.string.asset_cny))) {
-                            BtsRequest r = BtsRequestHelper.get_market_history(asset.getObjectId(), cny.getObjectId(), 300, new Date(System.currentTimeMillis() - 24 * 300000), new Date(),MarketFragment.this);
+                            BtsRequest r = BtsRequestHelper.get_market_history(asset.getObjectId(), cny.getObjectId(), 300, new Date(System.currentTimeMillis() - 120 * 300000), new Date(),MarketFragment.this);
                             BtsContorler.getInstance().send(r);
                             uiList.add(asset);
                         }

@@ -11,14 +11,18 @@ import cn.guye.bitshares.BtsApi;
 
 import static cn.guye.bitshares.RPC.CALL_DATABASE;
 import static cn.guye.bitshares.RPC.CALL_GET_ACCOUNT_BY_NAME;
+import static cn.guye.bitshares.RPC.CALL_GET_FULL_ACCOUNTS;
 import static cn.guye.bitshares.RPC.CALL_GET_MARKET_HISTORY;
+import static cn.guye.bitshares.RPC.CALL_GET_PROPOSED_TRANSACTIONS;
 import static cn.guye.bitshares.RPC.CALL_GET_TRADE_HISTORY;
 import static cn.guye.bitshares.RPC.CALL_HISTORY;
 import static cn.guye.bitshares.RPC.CALL_LOGIN;
+import static cn.guye.bitshares.RPC.CALL_LOOKUP_ACCOUNT_NAMES;
 import static cn.guye.bitshares.RPC.CALL_LOOKUP_ASSET_SYMBOLS;
 import static cn.guye.bitshares.RPC.CALL_NETWORK_BROADCAST;
 import static cn.guye.bitshares.RPC.CALL_SET_SUBSCRIBE_CALLBACK;
 import static cn.guye.bitshares.RPC.CALL_SUBSCRIBE_TO_MARKET;
+import static cn.guye.bitshares.RPC.GET_ACCOUNT_BALANCES;
 
 /**
  * Created by nieyu2 on 18/1/22.
@@ -79,4 +83,33 @@ public class BtsRequestHelper {
         return new BtsRequest(api,CALL_GET_TRADE_HISTORY ,listParams.toArray(), callBack);
     }
 
+    public static BtsRequest lookup_account_names(String api,String[] names,BtsRequest.CallBack callBack){
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(names);
+        return new BtsRequest(api,CALL_LOOKUP_ACCOUNT_NAMES ,listParams.toArray(), callBack);
+    }
+
+    public static BtsRequest get_account_balances(String api,String id,String[] asssets , BtsRequest.CallBack callBack){
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(id);
+        if(asssets == null){
+            listParams.add(new String[]{});
+        }else{
+            listParams.add(asssets);
+        }
+        return new BtsRequest(api,GET_ACCOUNT_BALANCES ,listParams.toArray(), callBack);
+    }
+    public static BtsRequest get_proposed_transactions(String api,String id,BtsRequest.CallBack callBack){
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(id);
+
+        return new BtsRequest(api,CALL_GET_PROPOSED_TRANSACTIONS ,listParams.toArray(), callBack);
+    }
+
+    public static BtsRequest get_full_accounts(String api,String[] ids,boolean isSub , BtsRequest.CallBack callBack){
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(ids);
+        listParams.add(isSub);
+        return new BtsRequest(api,CALL_GET_FULL_ACCOUNTS ,listParams.toArray(), callBack);
+    }
 }

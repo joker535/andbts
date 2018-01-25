@@ -1,5 +1,6 @@
 package cn.guye.bitshares.models.chain;
 
+import com.google.common.primitives.UnsignedInteger;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
@@ -10,14 +11,26 @@ import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Set;
 
+import cn.guye.bitshares.fc.io.base_encoder;
+import cn.guye.bitshares.fc.io.raw_type;
+import cn.guye.bitshares.models.AccountOptions;
+import cn.guye.bitshares.models.Asset;
 import cn.guye.bitshares.models.AssetAmount;
+import cn.guye.bitshares.models.Authority;
 import cn.guye.bitshares.models.GrapheneObject;
 import cn.guye.bitshares.models.Memo;
+import cn.guye.bitshares.wallet.config;
+import cn.guye.bitshares.wallet.types;
+
+import static cn.guye.bitshares.wallet.config.GRAPHENE_BLOCKCHAIN_PRECISION;
 
 public class Operations {
     public static final int ID_TRANSER_OPERATION = 0;
@@ -51,6 +64,24 @@ public class Operations {
 //        public Type getOperationFeeObjectById(int nId) {
 //            return mHashId2OperationFee.get(nId);
 //        }
+    }
+
+    public interface base_operation {
+        List<Authority> get_required_authorities();
+        List<String> get_required_active_authorities();
+        List<String> get_required_owner_authorities();
+
+        void write_to_encoder(base_encoder baseEncoder);
+
+        long calculate_fee(Object objectFeeParameter);
+
+        void set_fee(AssetAmount fee);
+
+        String fee_payer();
+
+        List<String> get_account_id_list();
+
+        List<String> get_asset_id_list();
     }
 
 
@@ -94,8 +125,11 @@ public class Operations {
 
 
 
-    public static class TransferOperation extends Operations{
-
+    public static class TransferOperation extends Operations implements base_operation{
+        public static class fee_parameters_type {
+            long fee       = 20 * GRAPHENE_BLOCKCHAIN_PRECISION;
+            long price_per_kbyte = 10 * GRAPHENE_BLOCKCHAIN_PRECISION; /// only required for large memos.
+        };
 
         public AssetAmount fee;
         public String from;
@@ -105,10 +139,108 @@ public class Operations {
         public Set extensions;
 
 
+        @Override
+        public List<Authority> get_required_authorities() {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public List<String> get_required_active_authorities() {
+            List<String> activeList = new ArrayList<>();
+            activeList.add(fee_payer());
+            return activeList;
+        }
+
+        @Override
+        public List<String> get_required_owner_authorities() {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public void write_to_encoder(base_encoder baseEncoder) {
+            raw_type rawObject = new raw_type();
+            baseEncoder.write(rawObject.get_byte_array(fee.getAmount()));
+            //baseEncoder.write(rawObject.get_byte_array(fee.asset_id.get_instance()));
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(fee.getAsset().getInstanceId()));
+            //baseEncoder.write(rawObject.get_byte_array(from.get_instance()));
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(new GrapheneObject(from).getInstanceId()));
+            //baseEncoder.write(rawObject.get_byte_array(to.get_instance()));
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(new GrapheneObject(to).getInstanceId()));
+            baseEncoder.write(rawObject.get_byte_array(amount.getAmount()));
+            //baseEncoder.write(rawObject.get_byte_array(amount.asset_id.get_instance()));
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(amount.getAsset().getInstanceId()));
+//            baseEncoder.write(rawObject.get_byte(memo != null));
+//            if (memo != null) {
+//                baseEncoder.write(memo.from.getPublicKey().toBytes());
+//                baseEncoder.write(memo.to.getPublicKey().toBytes());
+//                baseEncoder.write(rawObject.get_byte_array(memo.nonce));
+//                byte[] byteMessage = memo.message;
+//                rawObject.pack(baseEncoder, BigDecimal.valueOf(byteMessage.length));
+//                baseEncoder.write(byteMessage);
+//            }
+
+            //baseEncoder.write(rawObject.get_byte_array(extensions.size()));
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(extensions.size()));
+
+        }
+
+        @Override
+        public long calculate_fee(Object objectFeeParameter) {
+            assert(fee_parameters_type.class.isInstance(objectFeeParameter));
+            fee_parameters_type feeParametersType = (fee_parameters_type)objectFeeParameter;
+
+
+            return calculate_fee(feeParametersType);
+        }
+
+        @Override
+        public void set_fee(AssetAmount assetFee) {
+            fee = assetFee;
+        }
+
+        @Override
+        public String fee_payer() {
+            return from;
+        }
+
+        @Override
+        public List<String> get_account_id_list() {
+            List<String> listAccountId = new ArrayList<>();
+            listAccountId.add(from);
+            listAccountId.add(to);
+            return listAccountId;
+        }
+
+        @Override
+        public List<String> get_asset_id_list() {
+            List<String> listAssetId = new ArrayList<>();
+            listAssetId.add(amount.getAsset().getObjectId());
+            return listAssetId;
+        }
+
+        public long calculate_fee(fee_parameters_type feeParametersType) {
+            long lFee = feeParametersType.fee;
+//            if (memo != null) {
+//                // 计算数据价格
+//
+//                BigInteger nSize = BigInteger.valueOf(new Gson().toJson(memo).length());
+//                BigInteger nPrice = BigInteger.valueOf(feeParametersType.price_per_kbyte);
+//                BigInteger nKbyte = BigInteger.valueOf(1024);
+//                BigInteger nAmount = nPrice.multiply(nSize).divide(nKbyte);
+//
+//                lFee += nAmount.longValue();
+//            }
+
+            return lFee;
+        }
+
+
     }
 
-    public static class LimitOrderCreateOperation extends Operations{
-
+    public static class LimitOrderCreateOperation extends Operations implements base_operation{
+        static class fee_parameters_type {
+            long fee = 5 * GRAPHENE_BLOCKCHAIN_PRECISION;
+        }
         public AssetAmount fee;
         public String seller;
         public AssetAmount amount_to_sell;
@@ -123,10 +255,93 @@ public class Operations {
         public Set extensions;
 
 
+        @Override
+        public List<Authority> get_required_authorities() {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public List<String> get_required_active_authorities() {
+            List<String> activeList = new ArrayList<>();
+            activeList.add(fee_payer());
+            return activeList;
+        }
+
+        @Override
+        public List<String> get_required_owner_authorities() {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public void write_to_encoder(base_encoder baseEncoder) {
+            raw_type rawObject = new raw_type();
+
+            // fee
+            baseEncoder.write(rawObject.get_byte_array(fee.getAmount()));
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(fee.getAsset().getInstanceId()));
+
+            // seller
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(new GrapheneObject(seller).getInstanceId()));
+
+            // amount_to_sell
+            baseEncoder.write(rawObject.get_byte_array(amount_to_sell.getAmount()));
+            rawObject.pack(baseEncoder,
+                    BigDecimal.valueOf(amount_to_sell.getAsset().getInstanceId()));
+
+            // min_to_receive
+            baseEncoder.write(rawObject.get_byte_array(min_to_receive.getAmount()));
+            rawObject.pack(baseEncoder,
+                    BigDecimal.valueOf(min_to_receive.getAsset().getInstanceId()));
+
+            // expiration
+            baseEncoder.write(rawObject.get_byte_array(expiration));
+
+            // fill_or_kill
+            baseEncoder.write(rawObject.get_byte(fill_or_kill));
+
+            // extensions
+            rawObject.pack(baseEncoder,  BigDecimal.valueOf(extensions.size()));
+        }
+
+        @Override
+        public long calculate_fee(Object objectFeeParameter) {
+            assert(fee_parameters_type.class.isInstance(objectFeeParameter));
+            fee_parameters_type feeParametersType = (fee_parameters_type)objectFeeParameter;
+            return feeParametersType.fee;
+        }
+
+        @Override
+        public void set_fee(AssetAmount fee) {
+            this.fee = fee;
+        }
+
+        @Override
+        public String fee_payer() {
+            return seller;
+        }
+
+        @Override
+        public List<String> get_account_id_list() {
+            List<String> listAccountId = new ArrayList<>();
+            listAccountId.add(seller);
+            return listAccountId;
+        }
+
+        @Override
+        public List<String> get_asset_id_list() {
+            List<String> listAssetId = new ArrayList<>();
+            listAssetId.add(amount_to_sell.getAsset().getObjectId());
+            listAssetId.add(min_to_receive.getAsset().getObjectId());
+            return listAssetId;
+        }
+
+
     }
 
-    public static class LimitOrderCancelOperation extends Operations{
-
+    public static class LimitOrderCancelOperation extends Operations implements base_operation{
+        class fee_parameters_type {
+            long fee = 0;
+        };
 
         public AssetAmount fee;
         public String order;
@@ -136,20 +351,137 @@ public class Operations {
         public String fee_paying_account;
         public Set extensions;
 
+        @Override
+        public List<Authority> get_required_authorities() {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public List<String> get_required_active_authorities() {
+            List<String> activeList = new ArrayList<>();
+            activeList.add(fee_payer());
+            return activeList;
+        }
+
+        @Override
+        public List<String> get_required_owner_authorities() {
+            return new ArrayList<>();
+        }
+
+        @Override
+        public void write_to_encoder(base_encoder baseEncoder) {
+            raw_type rawObject = new raw_type();
+
+            // fee
+            baseEncoder.write(rawObject.get_byte_array(fee.getAmount()));
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(fee.getAsset().getInstanceId()));
+
+            // fee_paying_account
+            rawObject.pack(baseEncoder,
+                    BigDecimal.valueOf(new GrapheneObject(fee_paying_account).getInstanceId()));
+
+            // order
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(new GrapheneObject(order).getInstanceId()));
+
+            // extensions
+            rawObject.pack(baseEncoder, BigDecimal.valueOf(extensions.size()));
+        }
+
+        @Override
+        public long calculate_fee(Object objectFeeParameter) {
+            assert(fee_parameters_type.class.isInstance(objectFeeParameter));
+            fee_parameters_type feeParametersType = (fee_parameters_type)objectFeeParameter;
+            return feeParametersType.fee;
+        }
+
+        @Override
+        public void set_fee(AssetAmount fee) {
+            this.fee = fee;
+        }
+
+        @Override
+        public String fee_payer() {
+            return fee_paying_account;
+        }
+
+        @Override
+        public List<String> get_account_id_list() {
+            List<String> listAccountId = new ArrayList<>();
+            listAccountId.add(fee_paying_account);
+            return listAccountId;
+        }
+
+        @Override
+        public List<String> get_asset_id_list() {
+            List<String> listAssetId = new ArrayList<>();
+            return listAssetId;
+        }
+
 
     }
 
-    public static class CallOrderUpdateOperation extends Operations{
+    public static class CallOrderUpdateOperation extends Operations implements base_operation{
         /**
          * this is slightly more expensive than limit orders, this pricing impacts prediction markets
          */
+        class fee_parameters_type {
+            long fee = 20 * GRAPHENE_BLOCKCHAIN_PRECISION;
+        };
 
         AssetAmount fee;
         String funding_account; ///< pays fee, collateral, and cover
         AssetAmount delta_collateral; ///< the amount of collateral to add to the margin position
         AssetAmount delta_debt; ///< the amount of the debt to be paid off, may be negative to issue new debt
         Set extensions;
+        @Override
+        public List<Authority> get_required_authorities() {
+            return null;
+        }
 
+        @Override
+        public List<String> get_required_active_authorities() {
+            return null;
+        }
+
+        @Override
+        public List<String> get_required_owner_authorities() {
+            return null;
+        }
+
+        @Override
+        public void write_to_encoder(base_encoder baseEncoder) {
+
+        }
+
+        @Override
+        public long calculate_fee(Object objectFeeParameter) {
+            return 0;
+        }
+
+        @Override
+        public void set_fee(AssetAmount fee) {
+
+        }
+
+        @Override
+        public String fee_payer() {
+            return funding_account;
+        }
+
+        @Override
+        public List<String> get_account_id_list() {
+            List<String> listAccountId = new ArrayList<>();
+            listAccountId.add(funding_account);
+            return listAccountId;
+        }
+
+        @Override
+        public List<String> get_asset_id_list() {
+            List<String> listAssetId = new ArrayList<>();
+            listAssetId.add(delta_collateral.getAsset().getObjectId());
+            listAssetId.add(delta_debt.getAsset().getObjectId());
+            return listAssetId;
+        }
 
     }
 
@@ -160,6 +492,87 @@ public class Operations {
         public AssetAmount pays;
         public AssetAmount receives;
         public AssetAmount fee; // paid by receiving account
+
+    }
+
+
+    public static class AccountCreateOperation extends Operations implements base_operation {
+        class fee_parameters_type {
+            long basic_fee       = 5*GRAPHENE_BLOCKCHAIN_PRECISION; ///< the cost to register the cheapest non-free account
+            long premium_fee     = 2000*GRAPHENE_BLOCKCHAIN_PRECISION; ///< the cost to register the cheapest non-free account
+            int  price_per_kbyte = GRAPHENE_BLOCKCHAIN_PRECISION;
+        }
+
+        public AssetAmount fee;
+        public String registrar;
+        public String referrer;
+        public int referrer_percent;
+        public String name;
+        public Authority owner;
+        public Authority active;
+        public AccountOptions options;
+
+
+        public long calculate_fee(fee_parameters_type feeParametersType) {
+//            long lFeeRequired = feeParametersType.basic_fee;
+//            if (utils.is_cheap_name(name) == false) {
+//                lFeeRequired = feeParametersType.premium_fee;
+//            }
+
+            // // TODO: 07/09/2017  未完成
+            return 0;
+
+        }
+
+        @Override
+        public List<Authority> get_required_authorities() {
+            return null;
+        }
+
+        @Override
+        public List<String> get_required_active_authorities() {
+            return null;
+        }
+
+        @Override
+        public List<String> get_required_owner_authorities() {
+            return null;
+        }
+
+        @Override
+        public void write_to_encoder(base_encoder baseEncoder) {
+
+        }
+
+        @Override
+        public long calculate_fee(Object objectFeeParameter) {
+            return 0;
+        }
+
+        @Override
+        public void set_fee(AssetAmount fee) {
+
+        }
+
+        @Override
+        public String fee_payer() {
+            return registrar;
+        }
+
+        @Override
+        public List<String> get_account_id_list() {
+            List<String> listAccountId = new ArrayList<>();
+            listAccountId.add(registrar);
+            listAccountId.add(referrer);
+
+            return listAccountId;
+        }
+
+        @Override
+        public List<String> get_asset_id_list() {
+            List<String> listAssetId = new ArrayList<>();
+            return listAssetId;
+        }
 
     }
 

@@ -24,6 +24,7 @@ public class RPC {
     public static final String CALL_GET_KEY_REFERENCES = "get_key_references";
     public static final String CALL_GET_RELATIVE_ACCOUNT_HISTORY = "get_relative_account_history";
     public static final String CALL_LOOKUP_ACCOUNTS = "lookup_accounts";
+    public static final String CALL_LOOKUP_ACCOUNT_NAMES = "lookup_account_names";
     public static final String CALL_LIST_ASSETS = "list_assets";
     public static final String GET_OBJECTS = "get_objects";
     public static final String GET_ACCOUNT_BALANCES = "get_account_balances";
@@ -34,6 +35,8 @@ public class RPC {
     public static final String CALL_GET_MARKET_HISTORY = "get_market_history";
     public static final String CALL_GET_ALL_ASSET_HOLDERS = "get_all_asset_holders";
     public static final String CALL_SUBSCRIBE_TO_MARKET = "subscribe_to_market";
+    public static final String CALL_GET_PROPOSED_TRANSACTIONS = "get_proposed_transactions";
+    public static final String CALL_GET_FULL_ACCOUNTS = "get_full_accounts";
 
 
     public static long login(BtsApi api , String uid , String pwd){

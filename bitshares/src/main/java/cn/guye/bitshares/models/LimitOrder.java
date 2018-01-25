@@ -26,7 +26,7 @@ public class LimitOrder extends GrapheneObject implements ByteSerializable {
     public static final String KEY_PRICE = "sell_price";
 
     private String expiration;
-    private UserAccount seller;
+    private String seller;
     private long forSale;
     private long deferredFee;
     private Price sellPrice;
@@ -43,11 +43,11 @@ public class LimitOrder extends GrapheneObject implements ByteSerializable {
         this.expiration = expiration;
     }
 
-    public UserAccount getSeller() {
+    public String getSeller() {
         return seller;
     }
 
-    public void setSeller(UserAccount seller) {
+    public void setSeller(String seller) {
         this.seller = seller;
     }
 
@@ -118,7 +118,7 @@ public class LimitOrder extends GrapheneObject implements ByteSerializable {
             JsonObject object = json.getAsJsonObject();
             String id = object.get(KEY_ID).getAsString();
             String expiration = object.get(KEY_EXPIRATION).getAsString();
-            UserAccount seller = context.deserialize(object.get(KEY_SELLER), UserAccount.class);
+            String seller = object.get(KEY_SELLER).getAsString();
             String forSale = object.get(KEY_FOR_SALE).getAsString();
             Price price = context.deserialize(object.get(KEY_PRICE), Price.class);
             long deferredFee = object.get(KEY_DEFERRED_FEE).getAsLong();

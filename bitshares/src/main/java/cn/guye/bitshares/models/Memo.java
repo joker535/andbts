@@ -13,6 +13,7 @@ import java.util.Arrays;
 import cn.guye.bitshares.Util;
 import cn.guye.bitshares.crypto.ECKey;
 import cn.guye.bitshares.errors.ChecksumException;
+import cn.guye.bitshares.wallet.PublicKey;
 
 /**
  * Created by nelson on 11/9/16.
@@ -24,11 +25,11 @@ public class Memo implements ByteSerializable, JsonSerializable {
     public static final String KEY_NONCE = "nonce";
     public static final String KEY_MESSAGE = "message";
 
-    private Address from;
-    private Address to;
-    private long nonce;
-    private byte[] message;
-    private String plaintextMessage;
+    public Address from;
+    public Address to;
+    public long nonce;
+    public byte[] message;
+    public String plaintextMessage;
 
     public String getPlaintextMessage() {
         if(plaintextMessage == null)

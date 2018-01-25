@@ -19,9 +19,9 @@ public class GrapheneObject {
     @Expose
     protected String id;
 
-    protected int space;
-    protected int type;
-    protected long instance;
+    protected int space =-1;
+    protected int type = -1;
+    protected long instance = -1;
 
     public GrapheneObject(String id){
         this.id = id;
@@ -33,12 +33,38 @@ public class GrapheneObject {
         }
     }
 
+    public int getSpace() {
+        initId();
+        return space;
+    }
+
+    private void initId() {
+        if(space == -1 || type == -1 || instance == -1){
+            String[] parts = id.split("\\.");
+            if(parts.length == 3){
+                this.space = Integer.parseInt(parts[0]);
+                this.type = Integer.parseInt(parts[1]);
+                this.instance = Long.parseLong(parts[2]);
+            }
+        }
+    }
+
+    public int getType() {
+        initId();
+        return type;
+    }
+
+    public long getInstanceId() {
+        initId();
+        return instance;
+    }
+
     /**
      *
      * @return: A String containing the full object apiId in the form {space}.{type}.{instance}
      */
     public String getObjectId(){
-        return String.format("%d.%d.%d", space, type, instance);
+        return id;
     }
 
     /**

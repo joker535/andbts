@@ -14,6 +14,7 @@ import java.util.List;
 
 import cn.guye.bitshares.Util;
 import cn.guye.bitshares.errors.MalformedAddressException;
+import cn.guye.bitshares.wallet.PublicKey;
 
 /**
  * Created by nelson on 12/5/16.
@@ -27,14 +28,14 @@ public class AccountOptions implements GrapheneSerializable {
     public static final String KEY_EXTENSIONS = Extensions.KEY_EXTENSIONS;
 
     private PublicKey memo_key;
-    private UserAccount voting_account;
+    private String voting_account;
     private int num_witness;
     private int num_comittee;
     private Vote[] votes;
     private Extensions extensions;
 
     public AccountOptions(){
-        voting_account = new UserAccount(UserAccount.PROXY_TO_SELF);
+        voting_account = UserAccount.PROXY_TO_SELF;
         this.votes = new Vote[0];
         this.extensions = new Extensions();
     }
@@ -54,11 +55,11 @@ public class AccountOptions implements GrapheneSerializable {
         this.memo_key = memo_key;
     }
 
-    public UserAccount getVotingAccount() {
+    public String getVotingAccount() {
         return voting_account;
     }
 
-    public void setVotingAccount(UserAccount voting_account) {
+    public void setVotingAccount(String voting_account) {
         this.voting_account = voting_account;
     }
 
@@ -98,7 +99,7 @@ public class AccountOptions implements GrapheneSerializable {
             byteArray.addAll(Bytes.asList(memo_key.toBytes()));
 
             // Adding voting account
-            byteArray.addAll(Bytes.asList(voting_account.toBytes()));
+            byteArray.addAll(Bytes.asList(voting_account.getBytes()));
 
             // Adding num_witness
             byteArray.addAll(Bytes.asList(Util.revertShort(Short.valueOf((short) num_witness))));
@@ -133,7 +134,7 @@ public class AccountOptions implements GrapheneSerializable {
         options.addProperty(KEY_MEMO_KEY, new Address(memo_key.getKey()).toString());
         options.addProperty(KEY_NUM_COMMITTEE, num_comittee);
         options.addProperty(KEY_NUM_WITNESS, num_witness);
-        options.addProperty(KEY_VOTING_ACCOUNT, voting_account.getObjectId());
+        options.addProperty(KEY_VOTING_ACCOUNT, voting_account);
         JsonArray votesArray = new JsonArray();
         for(Vote vote : votes){
             //TODO: Add votes representation

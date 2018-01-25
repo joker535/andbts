@@ -3,31 +3,30 @@ package cn.guye.bts.contorl;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
 
 import org.greenrobot.eventbus.EventBus;
+import org.spongycastle.jce.provider.BouncyCastleProvider;
 
 import java.nio.ByteBuffer;
+import java.security.Security;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cn.guye.bitshares.BtsApi;
-import cn.guye.bitshares.RPC;
+import cn.guye.bitshares.models.AccountOptions;
 import cn.guye.bitshares.models.AccountTransactionHistory;
-import cn.guye.bitshares.models.Asset;
 import cn.guye.bitshares.models.AssetAmount;
+import cn.guye.bitshares.models.Authority;
 import cn.guye.bitshares.models.BucketObject;
 import cn.guye.bitshares.models.GrapheneObject;
-import cn.guye.bitshares.models.MarketTrade;
-import cn.guye.bitshares.models.ObjectType;
 import cn.guye.bitshares.models.OperationHistory;
-import cn.guye.bitshares.models.chain.Operations;
 import cn.guye.bts.data.DataCenter;
-import cn.guye.bts.fc.crypto.sha256_object;
-import cn.guye.bts.wallet.AccountObject;
-import cn.guye.bts.wallet.types;
+import cn.guye.bitshares.fc.crypto.sha256_object;
+import cn.guye.bitshares.wallet.AccountObject;
+import cn.guye.bitshares.wallet.types;
 import cn.guye.tools.jrpclib.JRpcError;
 import cn.guye.tools.jrpclib.RpcNotice;
 import cn.guye.tools.jrpclib.RpcReturn;
@@ -38,31 +37,11 @@ import cn.guye.tools.jrpclib.RpcReturn;
 
 public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener {
 
-    class wallet_object {
-        sha256_object chain_id;
-        List<AccountObject> my_accounts = new ArrayList<>();
-        ByteBuffer cipher_keys;
-        HashMap<String, List<types.public_key_type>> extra_keys = new HashMap<>();
-        String ws_server = "";
-        String ws_user = "";
-        String ws_password = "";
-
-        public void update_account(AccountObject accountObject) {
-            boolean bUpdated = false;
-            for (int i = 0; i < my_accounts.size(); ++i) {
-                if (my_accounts.get(i).id == accountObject.id) {
-                    my_accounts.remove(i);
-                    my_accounts.add(accountObject);
-                    bUpdated = true;
-                    break;
-                }
-            }
-
-            if (bUpdated == false) {
-                my_accounts.add(accountObject);
-            }
-        }
+    static {
+        Security.addProvider(new BouncyCastleProvider());
     }
+
+
 
     private DataCenter dataCenter;
     private EventBus eventBus = EventBus.getDefault();
@@ -76,7 +55,10 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
         api.addDataListener(this);
         gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
                 .registerTypeAdapter(OperationHistory.class, new OperationHistory.OperationHistoryDeserializer())
+                .registerTypeAdapter(Authority.class,new Authority.AuthorityDeserializer())
+                .registerTypeAdapter(types.public_key_type.class,new types.public_key_type_deserializer())
                 .registerTypeAdapter(AssetAmount.class, new AssetAmount.AssetAmountDeserializer())
+                .registerTypeAdapter(AccountOptions.class,new AccountOptions.AccountOptionsDeserializer())
                 .create();
     }
     private static BtsContorler instance;
@@ -88,6 +70,10 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
         return instance;
     }
 
+
+    public <T> T parse(JsonElement jsonElement,Class<T> tClass){
+        return gson.fromJson(jsonElement,tClass);
+    }
 
     private BtsApi api;
 

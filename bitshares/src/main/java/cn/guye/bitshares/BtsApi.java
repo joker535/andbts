@@ -1,5 +1,6 @@
 package cn.guye.bitshares;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
@@ -30,6 +31,7 @@ public class BtsApi {
     private List<BtsRpcListener> btsHandles = new LinkedList<>();
     private List<DataListener> dataLinstener = new LinkedList<>();
     private Map<String , Integer> apiIds = new HashMap<>(4);
+    private Gson gson;
 
     private BtsHandle btsHandle;
     private BtsCallBack btsCallBack;

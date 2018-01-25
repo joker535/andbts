@@ -9,6 +9,7 @@ import java.util.Arrays;
 import cn.guye.bitshares.crypto.Base58;
 import cn.guye.bitshares.crypto.ECKey;
 import cn.guye.bitshares.errors.MalformedAddressException;
+import cn.guye.bitshares.wallet.PublicKey;
 
 /**
  * Class used to encapsulate address-related operations.

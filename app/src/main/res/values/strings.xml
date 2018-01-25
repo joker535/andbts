@@ -17,4 +17,5 @@
     <string name="title_notifications">Notifications</string>
     <string name="loading">loading</string>
     <string name="asset_cny" >CNY</string>
+    <string name="main_activity_loading">loading</string>
 </resources>

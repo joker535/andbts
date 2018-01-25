@@ -221,18 +221,6 @@ public class Utils {
     }
 
     /**
-     * Calculates RIPEMD160(SHA256(input)). This is used in Address calculations.
-     */
-    public static byte[] sha256hash160(byte[] input) {
-        byte[] sha256 = Sha256Hash.hash(input);
-        RIPEMD160Digest digest = new RIPEMD160Digest();
-        digest.update(sha256, 0, sha256.length);
-        byte[] out = new byte[20];
-        digest.doFinal(out, 0);
-        return out;
-    }
-
-    /**
      * MPI encoded numbers are produced by the OpenSSL BN_bn2mpi function. They consist of
      * a 4 byte big endian length field, followed by the stated number of bytes representing
      * the number in big endian format (with a sign bit).
@@ -464,23 +452,6 @@ public class Utils {
             return str.toString().getBytes(charsetName);
         } catch (UnsupportedEncodingException e) {
             throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Attempts to parse the given string as arbitrary-length hex or base58 and then return the results, or null if
-     * neither parse was successful.
-     */
-    public static byte[] parseAsHexOrBase58(String data) {
-        try {
-            return HEX.decode(data);
-        } catch (Exception e) {
-            // Didn't decode as hex, try base58.
-            try {
-                return Base58.decodeChecked(data);
-            } catch (MalformedAddressException e1) {
-                return null;
-            }
         }
     }
 
