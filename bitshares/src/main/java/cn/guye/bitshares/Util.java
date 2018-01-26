@@ -1,12 +1,15 @@
 package cn.guye.bitshares;
+import lzma.sdk.lzma.Decoder;
+import lzma.streams.LzmaInputStream;
+import lzma.streams.LzmaOutputStream;
 
-import com.google.common.primitives.Bytes;
-import org.tukaani.xz.*;
-
+import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -22,6 +25,7 @@ import org.spongycastle.crypto.params.KeyParameter;
 import org.spongycastle.crypto.params.ParametersWithIV;
 
 import cn.guye.bitshares.models.AssetAmount;
+
 
 /**
  * Class used to encapsulate common utility methods
@@ -74,6 +78,22 @@ public class Util {
     }
 
     /**
+     * Converts a byte array, into a user-friendly hexadecimal string.
+     * @param bytes: A byte array.
+     * @return: A string with the representation of the byte array.
+     */
+    public static String fromatBytesToHex(byte[] bytes) {
+        StringBuilder builder = new StringBuilder();
+        for ( int j = 0; j < bytes.length; j++ ) {
+            int v = bytes[j] & 0xFF;
+            builder.append(hexArray[v >>> 4]);
+            builder.append(hexArray[v & 0x0F]);
+            builder.append(" ");
+        }
+        return builder.toString();
+    }
+
+    /**
      * Decodes an ascii string to a byte array.
      * @param data: Arbitrary ascii-encoded string.
      * @return: Array of bytes.
@@ -94,33 +114,19 @@ public class Util {
      * @author Henry Varona
      */
     public static byte[] compress(byte[] inputBytes, int which) {
-        FinishableOutputStream out = null;
-        try {
-            ByteArrayInputStream input = new ByteArrayInputStream(inputBytes);
-            ByteArrayOutputStream output = new ByteArrayOutputStream(2048);
-            LZMA2Options options = new LZMA2Options();
-            if(which == Util.LZMA) {
-                out = new LZMAOutputStream(output, options, -1);
-            }else if(which == Util.XZ){
-                out = new XZOutputStream(output, options);
-            }
-            byte[] inputBuffer = new byte[inputBytes.length];
-            int size;
-            while ((size = input.read(inputBuffer)) != -1) {
-                out.write(inputBuffer, 0, size);
-            }
-            out.finish();
-            return output.toByteArray();
-        } catch (IOException ex) {
-            Logger.getLogger(Util.class.getName()).log(Level.SEVERE, null, ex);
-        } finally {
-            try {
-                out.close();
-            } catch (IOException ex) {
-                Logger.getLogger(Util.class.getName()).log(Level.SEVERE, null, ex);
-            }
+        try{
+            ByteArrayOutputStream o = new ByteArrayOutputStream();
+            LzmaOutputStream outputStream = new LzmaOutputStream.Builder(
+                o).build();
+
+
+            outputStream.write(inputBytes,0,inputBytes.length);
+
+            return o.toByteArray();
+
+        }catch (IOException e){
+            return null;
         }
-        return null;
     }
 
     /**
@@ -132,55 +138,20 @@ public class Util {
      * @author Henry Varona
      */
     public static byte[] decompress(byte[] inputBytes, int which) {
+
         InputStream in = null;
         try {
-            System.out.println("Bytes: "+Util.bytesToHex(inputBytes));
-            ByteArrayInputStream input = new ByteArrayInputStream(inputBytes);
-            ByteArrayOutputStream output = new ByteArrayOutputStream(16*2048);
-            if(which == XZ) {
-                in = new XZInputStream(input);
-            }else if(which == LZMA){
-                in = new LZMAInputStream(input);
-            }
+            System.out.println("Bytes: "+Util.fromatBytesToHex(inputBytes));
+            LzmaInputStream inputStream = new LzmaInputStream(
+                    new BufferedInputStream(new ByteArrayInputStream(inputBytes)),
+                    new Decoder());
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             int size;
-            try{
-                while ((size = in.read()) != -1) {
-                    output.write(size);
-                }
-            }catch(CorruptedInputException e){
-                // Taking property byte
-                byte[] properties = new byte[1];
-                System.arraycopy(inputBytes, 0, properties,0,1);
-                // Taking dict size bytes
-                byte[] dictSize = new byte[4];
-                System.arraycopy(inputBytes, 1, properties,0, 4);
-                // Taking uncompressed size bytes
-                byte[] uncompressedSize =  new byte[9];
-                System.arraycopy(inputBytes, 5,properties,0,  9);
-
-                // Reversing bytes in header
-                byte[] header = Bytes.concat(properties, Util.revertBytes(dictSize), Util.revertBytes(uncompressedSize));
-                byte[] payload = new byte[inputBytes.length];
-                System.arraycopy(inputBytes, 13, payload, 0 , inputBytes.length-13);
-
-                // Trying again
-                input = new ByteArrayInputStream(Bytes.concat(header, payload));
-                output = new ByteArrayOutputStream(2048);
-                if(which == XZ) {
-                    in = new XZInputStream(input);
-                }else if(which == LZMA){
-                    in = new LZMAInputStream(input);
-                }
-                try{
-                    while ((size = in.read()) != -1) {
-                        output.write(size);
-                    }
-                }catch(CorruptedInputException ex){
-                    System.out.println("CorruptedInputException. Msg: "+ex.getMessage());
-                }
+            byte[] buff = new byte[2048];
+            while((size = inputStream.read(buff,0,2048)) > 0){
+                outputStream.write(buff,0,size);
             }
-            in.close();
-            return output.toByteArray();
+            return outputStream.toByteArray();
         } catch (IOException ex) {
             Logger.getLogger(Util.class.getName()).log(Level.SEVERE, null, ex);
         }
