@@ -17,9 +17,9 @@ public class Price {
     public AssetAmount base;
     public AssetAmount quote;
 
-    public BigDecimal base2Quote(){
+    public BigDecimal base2Quote(Asset b , Asset q){
         try {
-            return get_asset_amount(base.getAmount(), base.getAsset()).divide(get_asset_amount(quote.getAmount(), quote.getAsset()),quote.getAsset().getPrecision(), RoundingMode.DOWN);
+            return get_asset_amount(base.getAmount(), b).divide(get_asset_amount(quote.getAmount(), q),q.getPrecision(), RoundingMode.DOWN);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -28,15 +28,15 @@ public class Price {
 
     public static BigDecimal get_asset_amount(BigDecimal amount, Asset assetObject) {
         if (amount.longValue() == 0) {
-            return BigDecimal.ONE;
+            return BigDecimal.ZERO;
         } else {
             return new BigDecimal(amount.toString() +"E-"+assetObject.getPrecision());
         }
     }
 
-    public BigDecimal quote2Base(){
+    public BigDecimal quote2Base(Asset b , Asset q){
         try {
-            return get_asset_amount(quote.getAmount(), quote.getAsset()).divide(get_asset_amount(base.getAmount(), base.getAsset()),base.getAsset().getPrecision(), RoundingMode.DOWN);
+            return get_asset_amount(quote.getAmount(), q).divide(get_asset_amount(base.getAmount(), b),b.getPrecision(), RoundingMode.DOWN);
         } catch (Exception e) {
             e.printStackTrace();
             return null;

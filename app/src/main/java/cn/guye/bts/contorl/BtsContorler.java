@@ -8,24 +8,24 @@ import com.google.gson.JsonElement;
 import org.greenrobot.eventbus.EventBus;
 import org.spongycastle.jce.provider.BouncyCastleProvider;
 
-import java.nio.ByteBuffer;
 import java.security.Security;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cn.guye.bitshares.BtsApi;
 import cn.guye.bitshares.models.AccountOptions;
 import cn.guye.bitshares.models.AccountTransactionHistory;
+import cn.guye.bitshares.models.Asset;
 import cn.guye.bitshares.models.AssetAmount;
 import cn.guye.bitshares.models.Authority;
 import cn.guye.bitshares.models.BucketObject;
 import cn.guye.bitshares.models.GrapheneObject;
+import cn.guye.bitshares.models.LimitOrder;
 import cn.guye.bitshares.models.OperationHistory;
+import cn.guye.bts.R;
+import cn.guye.bts.app.BtsApp;
 import cn.guye.bts.data.DataCenter;
-import cn.guye.bitshares.fc.crypto.sha256_object;
-import cn.guye.bitshares.wallet.AccountObject;
 import cn.guye.bitshares.wallet.types;
 import cn.guye.tools.jrpclib.JRpcError;
 import cn.guye.tools.jrpclib.RpcNotice;
@@ -59,6 +59,7 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
                 .registerTypeAdapter(types.public_key_type.class,new types.public_key_type_deserializer())
                 .registerTypeAdapter(AssetAmount.class, new AssetAmount.AssetAmountDeserializer())
                 .registerTypeAdapter(AccountOptions.class,new AccountOptions.AccountOptionsDeserializer())
+                .registerTypeAdapter(LimitOrder.class,new LimitOrder.LimitOrderDeserializer())
                 .create();
     }
     private static BtsContorler instance;
@@ -93,7 +94,30 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
 
     @Override
     public void onOpen() {
-        eventBus.post(new BtsConnectEvent(api.getStatus(),"onOpen"));
+
+        String[] assets = BtsApp.instance.getResources().getStringArray(R.array.assets);//TODO config
+
+        BtsRequest request = BtsRequestHelper.lookup_asset_symbols(assets, new BtsRequest.CallBack() {
+            @Override
+            public void onResult(BtsRequest request, JsonElement data) {
+
+                Asset[] assetarry ;
+                JsonArray array = data.getAsJsonArray();
+                assetarry = new Asset[array.size()];
+                Asset.AssetDeserializer deserializer = new Asset.AssetDeserializer();
+                for (int i = 0 ;i< assetarry.length ; i++){
+                    assetarry[i] = deserializer.deserialize(array.get(i),Asset.class,null);
+                }
+                dataCenter.addData(assetarry);
+                eventBus.post(new BtsConnectEvent(api.getStatus(),"onOpen"));
+            }
+
+            @Override
+            public void onError(JRpcError error) {
+
+            }
+        });
+        send(request);
     }
 
     @Override
@@ -171,6 +195,14 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
             }
         }
         dataCenter.addData(datas);
+    }
+
+    public void addData(Asset[] assetarry) {
+        dataCenter.addData(assetarry);
+    }
+
+    public GrapheneObject getDataSync(String id){
+        return dataCenter.getDataSync(id);
     }
 
     public static class BtsConnectEvent{

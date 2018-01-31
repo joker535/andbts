@@ -14,12 +14,6 @@ import android.widget.TextView;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -33,7 +27,6 @@ import cn.guye.bitshares.models.AssetAmount;
 import cn.guye.bitshares.models.BucketObject;
 import cn.guye.bitshares.models.GrapheneObject;
 import cn.guye.bitshares.models.HistoryPrice;
-import cn.guye.bitshares.models.MarketTrade;
 import cn.guye.bitshares.models.Price;
 import cn.guye.bts.contorl.BtsContorler;
 import cn.guye.bts.contorl.BtsRequest;
@@ -41,8 +34,6 @@ import cn.guye.bts.contorl.BtsRequestHelper;
 import cn.guye.bts.data.DataCenter;
 import cn.guye.bts.view.EmptyView;
 import cn.guye.tools.jrpclib.JRpcError;
-
-import static cn.guye.bitshares.models.ObjectType.BUCKET_OBJECT;
 
 /**
  * Created by nieyu2 on 18/1/15.
@@ -53,6 +44,7 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
     private ListView listView ;
     private Map<String , Asset> assets = new HashMap<>();
     private Map<String , HistoryPrice> prices = new HashMap<>();
+    private Map<String , Long> volum = new HashMap<>();
     private MarketAdapter adapter;
     private Asset cny;
     private Handler handler;
@@ -151,6 +143,8 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
                     for (int i = 0 ;i< assetarry.length ; i++){
                         assetarry[i] = deserializer.deserialize(array.get(i),Asset.class,null);
                     }
+
+                    BtsContorler.getInstance().addData(assetarry);
                     List<Asset> uiList = new ArrayList<>(assetarry.length-1);
                     for (Asset a :
                             assetarry) {
@@ -162,12 +156,12 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
 
                     for (Asset asset : assets.values()) {
                         if (!asset.getSymbol().equals(getResources().getString(R.string.asset_cny))) {
-                            BtsRequest r = BtsRequestHelper.get_market_history(asset.getObjectId(), cny.getObjectId(), 300, new Date(System.currentTimeMillis() - 120 * 300000), new Date(),MarketFragment.this);
+                            BtsRequest r = BtsRequestHelper.get_market_history(asset.getObjectId(), cny.getObjectId(), 60, new Date(System.currentTimeMillis() - 60 * 60 *1000), new Date(),MarketFragment.this);
                             BtsContorler.getInstance().send(r);
                             uiList.add(asset);
                         }
                     }
-                    adapter.assets  =uiList;
+                    adapter.assetList =uiList;
                     adapter.notifyDataSetChanged();
                     BtsRequest btsRequest = BtsRequestHelper.set_subscribe_callback(null);
 
@@ -180,11 +174,25 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
                     for (int i = 0 ;i< bucketObjects.length ; i++){
                         bucketObjects[i] = bucketDeserializer.deserialize(array.get(i),BucketObject.class,null);
                     }
-                    if(bucketObjects != null && bucketObjects.length != 0){
-                        HistoryPrice p = getPrice(bucketObjects);
-                        if(p != null){
-                            prices.put(p.close.base.getAsset().getObjectId().equals(cny.getObjectId()) ? p.close.quote.getAsset().getObjectId() : p.close.base.getAsset().getObjectId(), p);
-                            adapter.notifyDataSetChanged();
+
+                    if(request.getTag() == null){
+                        if(bucketObjects != null && bucketObjects.length != 0){
+                            HistoryPrice p = getPrice(bucketObjects);
+                            if(p != null){
+                                prices.put(p.close.base.getAsset().getObjectId().equals(cny.getObjectId()) ? p.close.quote.getAsset().getObjectId() : p.close.base.getAsset().getObjectId(), p);
+                                adapter.notifyDataSetChanged();
+                                BtsRequest r = BtsRequestHelper.get_market_history(p.close.base.getAsset().getObjectId().equals(cny.getObjectId()) ? p.close.quote.getAsset().getObjectId() : p.close.base.getAsset().getObjectId(), cny.getObjectId(), 24 * 60 *60, new Date(System.currentTimeMillis() - 2 * 24 * 60 *60 *1000), new Date(),MarketFragment.this);
+                                r.setTag("volum");
+                                BtsContorler.getInstance().send(r);
+                            }
+                        }
+                    }else{
+                        if(bucketObjects != null && bucketObjects.length != 0){
+                            HistoryPrice p = getPrice(bucketObjects);
+                            if(p != null){
+                                volum.put(p.close.base.getAsset().getObjectId().equals(cny.getObjectId()) ? p.close.quote.getAsset().getObjectId() : p.close.base.getAsset().getObjectId(), Price.get_asset_amount(p.volume.quote.getAmount(), assets.get(p.volume.quote.getAsset().getObjectId())).longValue());
+                                adapter.notifyDataSetChanged();
+                            }
                         }
                     }
 
@@ -225,16 +233,16 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
 
     private class MarketAdapter extends BaseAdapter{
         private EmptyView emptyView = new EmptyView(getContext());
-        public List<Asset> assets = Collections.EMPTY_LIST;
+        public List<Asset> assetList = Collections.EMPTY_LIST;
 
         @Override
         public int getCount() {
-            return assets.size();
+            return assetList.size();
         }
 
         @Override
         public Object getItem(int position) {
-            return assets.get(position);
+            return assetList.get(position);
         }
 
         @Override
@@ -244,7 +252,7 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
-            Asset asset = assets.get(position);
+            Asset asset = assetList.get(position);
             String message = asset.getSymbol() + " : ";
             HistoryPrice price = prices.get(asset.getObjectId());
             if(price == null){
@@ -252,11 +260,15 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
             }else{
                 Price p = price.close;
                 if(p.base.getAsset().getObjectId().equals(cny.getObjectId())){
-                    message += p.base2Quote().toString();
-                     message += " 量: " + Price.get_asset_amount(price.volume.quote.getAmount(),price.volume.quote.getAsset()).longValue();
+                    message += p.base2Quote(assets.get(p.base.getAsset().getObjectId()) , assets.get(p.quote.getAsset().getObjectId())).toString();
+                    String v = String.valueOf(volum.get(price.volume.quote.getAsset().getObjectId()));
+                     message += " 量: " ;
+                     message += v==null?"--":v;
                 }else{
-                    message += p.quote2Base().toString();
-                    message += " 量: " + Price.get_asset_amount(price.volume.base.getAmount(),price.volume.base.getAsset()).longValue();
+                    message += p.quote2Base(assets.get(p.base.getAsset().getObjectId()) , assets.get(p.quote.getAsset().getObjectId())).toString();
+                    String v = String.valueOf(volum.get(price.volume.base.getAsset().getObjectId()));
+                    message += " 量: " ;
+                    message += v==null?"--":v;
                 }
             }
             TextView textView = new TextView(getActivity());

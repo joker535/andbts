@@ -36,9 +36,9 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
     public static final String KEY_ASSET_ID = "asset_id";
 
     private BigDecimal amount;
-    private Asset asset;
+    private GrapheneObject asset;
 
-    public AssetAmount(BigDecimal amount, Asset asset){
+    public AssetAmount(BigDecimal amount, GrapheneObject asset){
         this.amount = amount;
         this.asset = asset;
     }
@@ -96,16 +96,7 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
         return this;
     }
 
-    /**
-     * Divides the current amount by a divisor provided as the first parameter. The second parameter
-     * specifies the rounding method to be used.
-     * @param divisor: The divisor
-     * @return: The same AssetAMount instance, but with the divided amount value
-     */
-    public AssetAmount dividedBy(BigDecimal divisor){
-        this.amount = amount.divide(divisor,asset.getPrecision(),BigDecimal.ROUND_HALF_DOWN);
-        return this;
-    }
+
 
     public void setAmount(BigDecimal amount){
         this.amount = amount;
@@ -115,7 +106,7 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
         return this.amount;
     }
 
-    public Asset getAsset(){ return this.asset; }
+    public GrapheneObject getAsset(){ return this.asset; }
 
     @Override
     public byte[] toBytes() {

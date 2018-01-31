@@ -15,6 +15,7 @@
         <item>OPEN.ETH</item>
         <item>YOYOW</item>
         <item>JPY</item>
+        <item>SEER</item>
     </string-array>
 
     <string-array name="quotation_currency_pair_options">

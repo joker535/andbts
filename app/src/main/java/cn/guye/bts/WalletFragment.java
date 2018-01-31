@@ -7,7 +7,9 @@ import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 
 import org.greenrobot.eventbus.EventBus;
@@ -23,7 +25,10 @@ import cn.guye.bitshares.ErrorCode;
 import cn.guye.bitshares.RPC;
 import cn.guye.bitshares.errors.MalformedAddressException;
 import cn.guye.bitshares.models.Address;
+import cn.guye.bitshares.models.Asset;
 import cn.guye.bitshares.models.FullAccountObject;
+import cn.guye.bitshares.models.LimitOrder;
+import cn.guye.bitshares.models.Price;
 import cn.guye.bitshares.models.backup.FileBin;
 import cn.guye.bitshares.models.backup.LinkedAccount;
 import cn.guye.bitshares.models.backup.WalletBackup;
@@ -42,12 +47,15 @@ import cn.guye.tools.jrpclib.JRpcError;
 public class WalletFragment extends BaseFragment implements BtsRequest.CallBack {
 
 
+    private TextView textView;
+
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
         EventBus.getDefault().register(this);
-        return super.onCreateView(inflater, container, savedInstanceState);
+        textView = new TextView(getActivity());
+        return textView;
     }
 
     @Override
@@ -55,15 +63,47 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
         if(request.getMethod().equals(RPC.CALL_GET_ACCOUNT_BY_NAME)){
             AccountObject my = BtsContorler.getInstance().parse(data,AccountObject.class);
 
-            BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE,new String[]{"zipian1"},false,this);
+            BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE,new String[]{"guye535","joker53535"},false,this);
             BtsContorler.getInstance().send(r);
 
         }else{
-            FullAccountObject fullAccountObject = BtsContorler.getInstance().parse(data.getAsJsonArray().get(0).getAsJsonArray().get(1),FullAccountObject.class);
+            JsonArray array = data.getAsJsonArray();
 
-            System.out.println(fullAccountObject.account.active.getKeyAuthList().get(0).getAddress());
+            FullAccountObject[] fullAccountObject = new FullAccountObject[array.size()];
+            final StringBuilder sb = new StringBuilder();
+            for (int i  = 0 ; i < fullAccountObject.length ; i++){
+                fullAccountObject[i] = BtsContorler.getInstance().parse(array.get(i).getAsJsonArray().get(1),FullAccountObject.class);
+                sb.append("======================\n");
+                sb.append(fullAccountObject[i].account.name).append("\n");
+                for (FullAccountObject.Balances b :
+                        fullAccountObject[i].balances) {
+                    Asset base  = (Asset) BtsContorler.getInstance().getDataSync(b.asset_type);
+                    String bName = base== null?b.asset_type:base.getSymbol();
+                    String bl = base==null?b.balance.toString():Price.get_asset_amount(b.balance,base).toString();
+                    sb.append(bName).append(" : ").append(bl).append("\n");
+                }
 
-            importfile();
+                sb.append("order:\n");
+                for (LimitOrder lo:
+                     fullAccountObject[i].limit_orders) {
+                    Price p = lo.getSellPrice();
+                    Asset base  = (Asset) BtsContorler.getInstance().getDataSync(p.base.getAsset().getObjectId());
+                    Asset quote  = (Asset) BtsContorler.getInstance().getDataSync(p.quote.getAsset().getObjectId());
+                    String bName = base== null?p.base.getAsset().getObjectId():base.getSymbol();
+                    String qName = quote== null?p.quote.getAsset().getObjectId():quote.getSymbol();
+                    String amount = base==null?"-":Price.get_asset_amount(p.base.getAmount(),base).toString();
+                    sb.append(bName).append("/").append(qName).append(" : ").append(lo.getSellPrice().base2Quote(base,quote)).append(" for sell:").append(amount).append("\n");
+                }
+            }
+
+            getActivity().runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    textView.setText(sb.toString());
+                }
+            });
+
+//            importfile();
 
         }
     }
@@ -73,45 +113,45 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
 
     }
 
-    public void importfile(){
-        File file = new File(Environment.getExternalStorageDirectory(),"/bts_test_20180125.bin");
-        if (file.exists() == false) {
-            return;
-        }
-
-        int nSize = (int)file.length();
-
-        final byte[] byteContent = new byte[nSize];
-
-        FileInputStream fileInputStream;
-        try {
-            fileInputStream = new FileInputStream(file);
-            fileInputStream.read(byteContent, 0, byteContent.length);
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            return ;
-        } catch (IOException e) {
-            e.printStackTrace();
-            return ;
-        }
-
-        WalletBackup walletBackup = FileBin.deserializeWalletBackup(byteContent, "woaimaomao535");
-        if (walletBackup == null) {
-            return ;
-        }
-
-        String strBrainKey = walletBackup.getWallet(0).decryptBrainKey("woaimaomao535");
-        //LinkedAccount linkedAccount = walletBackup.getLinkedAccounts()[0];
-
-        int nRet = ErrorCode.ERROR_IMPORT_NOT_MATCH_PRIVATE_KEY;
-        for (LinkedAccount linkedAccount : walletBackup.getLinkedAccounts()) {
-            nRet = import_brain_key(linkedAccount.getName(), "woaimaomao535", strBrainKey);
-            if (nRet == 0) {
-                break;
-            }
-        }
-
-    }
+//    public void importfile(){
+//        File file = new File(Environment.getExternalStorageDirectory(),"/bts_test_20180125.bin");
+//        if (file.exists() == false) {
+//            return;
+//        }
+//
+//        int nSize = (int)file.length();
+//
+//        final byte[] byteContent = new byte[nSize];
+//
+//        FileInputStream fileInputStream;
+//        try {
+//            fileInputStream = new FileInputStream(file);
+//            fileInputStream.read(byteContent, 0, byteContent.length);
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//            return ;
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//            return ;
+//        }
+//
+//        WalletBackup walletBackup = FileBin.deserializeWalletBackup(byteContent, "woaimaomao535");
+//        if (walletBackup == null) {
+//            return ;
+//        }
+//
+//        String strBrainKey = walletBackup.getWallet(0).decryptBrainKey("woaimaomao535");
+//        //LinkedAccount linkedAccount = walletBackup.getLinkedAccounts()[0];
+//
+//        int nRet = ErrorCode.ERROR_IMPORT_NOT_MATCH_PRIVATE_KEY;
+//        for (LinkedAccount linkedAccount : walletBackup.getLinkedAccounts()) {
+//            nRet = import_brain_key(linkedAccount.getName(), "woaimaomao535", strBrainKey);
+//            if (nRet == 0) {
+//                break;
+//            }
+//        }
+//
+//    }
 
     public int import_brain_key(String strAccountNameOrId,
                                 String strPassword,

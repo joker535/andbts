@@ -18,7 +18,7 @@ import cn.guye.bitshares.fc.crypto.sha512_object;
 import cn.guye.bitshares.fc.io.base_encoder;
 import cn.guye.bitshares.fc.io.datastream_encoder;
 import cn.guye.bitshares.fc.io.datastream_size_encoder;
-import cn.guye.bitshares.fc.io.raw_type;
+import cn.guye.bitshares.fc.io.RawType;
 import cn.guye.bitshares.wallet.AccountObject;
 import cn.guye.bitshares.wallet.BrainKey;
 import cn.guye.bitshares.wallet.PrivateKey;
@@ -65,7 +65,7 @@ public class MyWallet {
         sha512_object checksum;
 
         public void write_to_encoder(base_encoder encoder) {
-            raw_type rawType = new raw_type();
+            RawType rawType = new RawType();
 
             rawType.pack(encoder, BigDecimal.valueOf(keys.size()));
             for (Map.Entry<PublicKey, String> entry : keys.entrySet()) {
@@ -83,7 +83,7 @@ public class MyWallet {
             keysResult.keys = new HashMap<>();
             keysResult.checksum = new sha512_object();
 
-            raw_type rawType = new raw_type();
+            RawType rawType = new RawType();
             BigDecimal size = rawType.unpack(inputStream);
             try {
                 for (int i = 0; i < size.longValue(); ++i) {

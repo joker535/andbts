@@ -1,18 +1,16 @@
 package cn.guye.bitshares.models.chain;
 
-import com.google.common.primitives.UnsignedInteger;
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
@@ -20,15 +18,12 @@ import java.util.List;
 import java.util.Set;
 
 import cn.guye.bitshares.fc.io.base_encoder;
-import cn.guye.bitshares.fc.io.raw_type;
+import cn.guye.bitshares.fc.io.RawType;
 import cn.guye.bitshares.models.AccountOptions;
-import cn.guye.bitshares.models.Asset;
 import cn.guye.bitshares.models.AssetAmount;
 import cn.guye.bitshares.models.Authority;
 import cn.guye.bitshares.models.GrapheneObject;
 import cn.guye.bitshares.models.Memo;
-import cn.guye.bitshares.wallet.config;
-import cn.guye.bitshares.wallet.types;
 
 import static cn.guye.bitshares.wallet.config.GRAPHENE_BLOCKCHAIN_PRECISION;
 
@@ -123,6 +118,31 @@ public class Operations {
         }
     }
 
+    public static class OperationSerializer implements JsonSerializer<Operations> {
+
+        @Override
+        public JsonElement serialize(Operations src, Type typeOfSrc, JsonSerializationContext context) {
+            JsonArray array = new JsonArray();
+            array.add(src.type);
+            if(src instanceof TransferOperation){
+                JsonElement object = context.serialize(src,TransferOperation.class);
+                array.add(object);
+            }else if(src instanceof LimitOrderCreateOperation){
+                JsonElement object = context.serialize(src,LimitOrderCreateOperation.class);
+                array.add(object);
+            }else if(src instanceof LimitOrderCancelOperation){
+                JsonElement object = context.serialize(src,LimitOrderCancelOperation.class);
+                array.add(object);
+            }else if(src instanceof CallOrderUpdateOperation){
+                JsonElement object = context.serialize(src,CallOrderUpdateOperation.class);
+                array.add(object);
+            }
+
+            return array;
+        }
+    }
+
+
 
 
     public static class TransferOperation extends Operations implements base_operation{
@@ -135,7 +155,7 @@ public class Operations {
         public String from;
         public String to;
         public AssetAmount amount;
-//        public Memo memo; //TODO
+        public Memo memo;
         public Set extensions;
 
 
@@ -158,28 +178,24 @@ public class Operations {
 
         @Override
         public void write_to_encoder(base_encoder baseEncoder) {
-            raw_type rawObject = new raw_type();
+            RawType rawObject = new RawType();
             baseEncoder.write(rawObject.get_byte_array(fee.getAmount()));
-            //baseEncoder.write(rawObject.get_byte_array(fee.asset_id.get_instance()));
             rawObject.pack(baseEncoder, BigDecimal.valueOf(fee.getAsset().getInstanceId()));
-            //baseEncoder.write(rawObject.get_byte_array(from.get_instance()));
             rawObject.pack(baseEncoder, BigDecimal.valueOf(new GrapheneObject(from).getInstanceId()));
-            //baseEncoder.write(rawObject.get_byte_array(to.get_instance()));
             rawObject.pack(baseEncoder, BigDecimal.valueOf(new GrapheneObject(to).getInstanceId()));
             baseEncoder.write(rawObject.get_byte_array(amount.getAmount()));
-            //baseEncoder.write(rawObject.get_byte_array(amount.asset_id.get_instance()));
             rawObject.pack(baseEncoder, BigDecimal.valueOf(amount.getAsset().getInstanceId()));
-//            baseEncoder.write(rawObject.get_byte(memo != null));
-//            if (memo != null) {
-//                baseEncoder.write(memo.from.getPublicKey().toBytes());
-//                baseEncoder.write(memo.to.getPublicKey().toBytes());
-//                baseEncoder.write(rawObject.get_byte_array(memo.nonce));
-//                byte[] byteMessage = memo.message;
-//                rawObject.pack(baseEncoder, BigDecimal.valueOf(byteMessage.length));
-//                baseEncoder.write(byteMessage);
-//            }
+            baseEncoder.write(rawObject.get_byte(memo != null));
+            if (memo != null) {
+                baseEncoder.write(memo.from.getPublicKey().toBytes());
+                baseEncoder.write(memo.to.getPublicKey().toBytes());
+                baseEncoder.write(rawObject.get_byte_array(memo.nonce));
+                byte[] byteMessage = memo.message;
+                rawObject.pack(baseEncoder, BigDecimal.valueOf(byteMessage.length));
+                baseEncoder.write(byteMessage);
+            }
 
-            //baseEncoder.write(rawObject.get_byte_array(extensions.size()));
+            baseEncoder.write(rawObject.get_byte_array(extensions.size()));
             rawObject.pack(baseEncoder, BigDecimal.valueOf(extensions.size()));
 
         }
@@ -274,7 +290,7 @@ public class Operations {
 
         @Override
         public void write_to_encoder(base_encoder baseEncoder) {
-            raw_type rawObject = new raw_type();
+            RawType rawObject = new RawType();
 
             // fee
             baseEncoder.write(rawObject.get_byte_array(fee.getAmount()));
@@ -370,7 +386,7 @@ public class Operations {
 
         @Override
         public void write_to_encoder(base_encoder baseEncoder) {
-            raw_type rawObject = new raw_type();
+            RawType rawObject = new RawType();
 
             // fee
             baseEncoder.write(rawObject.get_byte_array(fee.getAmount()));

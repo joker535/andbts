@@ -18,6 +18,8 @@ public class BtsRequest {
 
     private CallBack callBack;
 
+    private Object tag;
+
     public BtsRequest(String api, String method, Object[] params,CallBack callBack) {
         this.api = api;
         this.method = method;
@@ -61,6 +63,15 @@ public class BtsRequest {
     public CallBack getCallBack() {
         return callBack;
 
+    }
+
+    public void setTag(Object tag) {
+        this.tag = tag;
+    }
+
+    public Object getTag() {
+
+        return tag;
     }
 
     public long getId() {

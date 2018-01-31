@@ -86,7 +86,7 @@ public class ImportActivty extends AppCompatActivity {
                     processImport(strAccount, strPassword, strPrivateKey);
                 } else if (mnModel == WALLET_MODEL_BIN_FILE) {
                     if (TextUtils.isEmpty(strPassword)) {
-                        processErrorCode(ErrorCode.ERROR_PASSWORD_INVALID);
+//                        processErrorCode(ErrorCode.ERROR_PASSWORD_INVALID);
                         return;
                     }
 
@@ -124,14 +124,14 @@ public class ImportActivty extends AppCompatActivity {
 
         mnModel = getIntent().getIntExtra("model", 0);
         switch (mnModel) {
-            case ACCOUNT_MODEL:
-                getSupportActionBar().setTitle(R.string.import_activity_account_model);
-                break;
-            case WALLET_MODEL_BIN_FILE:
-                getSupportActionBar().setTitle(R.string.import_activity_wallet_model);
-                layoutFileBin.setVisibility(View.VISIBLE);
-                layoutAccountName.setVisibility(View.GONE);
-                break;
+//            case ACCOUNT_MODEL:
+//                getSupportActionBar().setTitle(R.string.import_activity_account_model);
+//                break;
+//            case WALLET_MODEL_BIN_FILE:
+//                getSupportActionBar().setTitle(R.string.import_activity_wallet_model);
+//                layoutFileBin.setVisibility(View.VISIBLE);
+//                layoutAccountName.setVisibility(View.GONE);
+//                break;
             case WALLET_MODEL_BRAIN_KEY:
                 layoutBrainKey.setVisibility(View.VISIBLE);
                 break;
@@ -181,50 +181,50 @@ public class ImportActivty extends AppCompatActivity {
         new Thread(new Runnable() {
             @Override
             public void run() {
-                int nRet = BitsharesWalletWraper.getInstance().build_connect();
-                if (nRet != 0) {
-                    // // TODO: 01/09/2017 连接失败的处理
-                    runOnUiThread(new Runnable() {
-                        @Override
-                        public void run() {
-//                            mProcessHud.dismiss();
-                            textView.setText(R.string.import_activity_connect_failed);
-                        }
-                    });
-                    return;
-                }
-                if (mnModel == WALLET_MODEL_WIF_KEY) {
-                    nRet = BitsharesWalletWraper.getInstance().import_key(
-                            strAccount,
-                            strPassword,
-                            strVariant
-                    );
-                } else if (mnModel == ACCOUNT_MODEL){
-                    nRet = BitsharesWalletWraper.getInstance().import_account_password(
-                            strAccount,
-                            strPassword
-                    );
-                } else if (mnModel == WALLET_MODEL_BRAIN_KEY) {
-                    nRet = BitsharesWalletWraper.getInstance().import_brain_key(
-                            strAccount,
-                            strPassword,
-                            strVariant
-                    );
-                } else if (mnModel == WALLET_MODEL_BIN_FILE) {
-                    nRet = BitsharesWalletWraper.getInstance().import_file_bin(
-                            strPassword,
-                            strVariant
-                    );
-                }
-
-                if (nRet == 0) {
-                    mProcessHud.dismiss();
-                    Intent intent = new Intent(ImportActivty.this, MainActivity.class);
-                    intent.setFlags(FLAG_ACTIVITY_CLEAR_TASK | FLAG_ACTIVITY_NEW_TASK);
-                    startActivity(intent);
-                } else {
-                    processErrorCode(nRet);
-                }
+//                int nRet = BitsharesWalletWraper.getInstance().build_connect();
+//                if (nRet != 0) {
+//                    // // TODO: 01/09/2017 连接失败的处理
+//                    runOnUiThread(new Runnable() {
+//                        @Override
+//                        public void run() {
+////                            mProcessHud.dismiss();
+//                            textView.setText(R.string.import_activity_connect_failed);
+//                        }
+//                    });
+//                    return;
+//                }
+//                if (mnModel == WALLET_MODEL_WIF_KEY) {
+//                    nRet = BitsharesWalletWraper.getInstance().import_key(
+//                            strAccount,
+//                            strPassword,
+//                            strVariant
+//                    );
+//                } else if (mnModel == ACCOUNT_MODEL){
+//                    nRet = BitsharesWalletWraper.getInstance().import_account_password(
+//                            strAccount,
+//                            strPassword
+//                    );
+//                } else if (mnModel == WALLET_MODEL_BRAIN_KEY) {
+//                    nRet = BitsharesWalletWraper.getInstance().import_brain_key(
+//                            strAccount,
+//                            strPassword,
+//                            strVariant
+//                    );
+//                } else if (mnModel == WALLET_MODEL_BIN_FILE) {
+//                    nRet = BitsharesWalletWraper.getInstance().import_file_bin(
+//                            strPassword,
+//                            strVariant
+//                    );
+//                }
+//
+//                if (nRet == 0) {
+//                    mProcessHud.dismiss();
+//                    Intent intent = new Intent(ImportActivty.this, MainActivity.class);
+//                    intent.setFlags(FLAG_ACTIVITY_CLEAR_TASK | FLAG_ACTIVITY_NEW_TASK);
+//                    startActivity(intent);
+//                } else {
+//                    processErrorCode(nRet);
+//                }
             }
         }).start();
     }
@@ -236,23 +236,23 @@ public class ImportActivty extends AppCompatActivity {
             @Override
             public void run() {
 //                mProcessHud.dismiss();
-                if (nRet == ErrorCode.ERROR_FILE_NOT_FOUND) {
-                    textView.setText(R.string.import_activity_file_failed);
-                } else if (nRet == ErrorCode.ERROR_FILE_READ_FAIL) {
-                    textView.setText(R.string.import_activity_file_failed);
-                } else if (nRet == ErrorCode.ERROR_NO_ACCOUNT_OBJECT) {
-                    textView.setText(R.string.import_activity_account_name_invalid);
-                } else if (nRet == ErrorCode.ERROR_IMPORT_NOT_MATCH_PRIVATE_KEY) {
-                    textView.setText(R.string.import_activity_private_key_invalid);
-                } else if (nRet == ErrorCode.ERROR_NETWORK_FAIL) {
-                    textView.setText(R.string.import_activity_connect_failed);
-                } else if (nRet == ErrorCode.ERROR_PASSWORD_INVALID) {
-                    textView.setText(R.string.import_activity_password_invalid);
-                } else if (nRet == ErrorCode.ERROR_FILE_BIN_PASSWORD_INVALID) {
-                    textView.setText(R.string.import_activity_file_bin_password_invalid);
-                } else if (nRet == ErrorCode.ERROR_UNKNOWN) {
-                    textView.setText(R.string.import_activity_unknown_error);
-                }
+//                if (nRet == ErrorCode.ERROR_FILE_NOT_FOUND) {
+//                    textView.setText(R.string.import_activity_file_failed);
+//                } else if (nRet == ErrorCode.ERROR_FILE_READ_FAIL) {
+//                    textView.setText(R.string.import_activity_file_failed);
+//                } else if (nRet == ErrorCode.ERROR_NO_ACCOUNT_OBJECT) {
+//                    textView.setText(R.string.import_activity_account_name_invalid);
+//                } else if (nRet == ErrorCode.ERROR_IMPORT_NOT_MATCH_PRIVATE_KEY) {
+//                    textView.setText(R.string.import_activity_private_key_invalid);
+//                } else if (nRet == ErrorCode.ERROR_NETWORK_FAIL) {
+//                    textView.setText(R.string.import_activity_connect_failed);
+//                } else if (nRet == ErrorCode.ERROR_PASSWORD_INVALID) {
+//                    textView.setText(R.string.import_activity_password_invalid);
+//                } else if (nRet == ErrorCode.ERROR_FILE_BIN_PASSWORD_INVALID) {
+//                    textView.setText(R.string.import_activity_file_bin_password_invalid);
+//                } else if (nRet == ErrorCode.ERROR_UNKNOWN) {
+//                    textView.setText(R.string.import_activity_unknown_error);
+//                }
             }
         });
     }

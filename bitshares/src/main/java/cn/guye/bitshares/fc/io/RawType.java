@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.util.Date;
 
 
-public class raw_type {
+public class RawType {
     public byte[] get_byte_array(short value) {
         byte[] byteValue = new byte[2];
         byteValue[1] = (byte) ((value >> 8) & 0xff);
