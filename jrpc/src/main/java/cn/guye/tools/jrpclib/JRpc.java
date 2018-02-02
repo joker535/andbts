@@ -1,5 +1,7 @@
 package cn.guye.tools.jrpclib;
 
+import com.google.gson.JsonArray;
+
 import java.util.Map;
 
 public interface JRpc {
@@ -21,7 +23,7 @@ public interface JRpc {
 
 	public void startConnect();
 
-	public long call(String method, Object[] param, RpcCallBack callback);
+	public long call(String method, JsonArray params, RpcCallBack callback);
 
 	public void setNoticeHandle(RpcNoticeHandle noticeHandle);
 

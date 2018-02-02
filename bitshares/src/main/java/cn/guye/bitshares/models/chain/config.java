@@ -1,4 +1,4 @@
-package cn.guye.bitshares.wallet;
+package cn.guye.bitshares.models.chain;
 
 
 
@@ -135,27 +135,6 @@ public class config {
 
     public static final int GRAPHENE_IRREVERSIBLE_THRESHOLD                   = (70 * GRAPHENE_1_PERCENT);
 
-    /**
-     *  Reserved Account IDs with special meaning
-     */
-    /*
-///@{
-/// Represents the current committee members, two-week review period
-#define GRAPHENE_COMMITTEE_ACCOUNT (graphene::chain::account_id_type(0))
-/// Represents the current witnesses
-            #define GRAPHENE_WITNESS_ACCOUNT (graphene::chain::account_id_type(1))
-/// Represents the current committee members
-            #define GRAPHENE_RELAXED_COMMITTEE_ACCOUNT (graphene::chain::account_id_type(2))
-/// Represents the canonical account with NO authority (nobody can access funds in null account)
-            #define GRAPHENE_NULL_ACCOUNT (graphene::chain::account_id_type(3))
-/// Represents the canonical account with WILDCARD authority (anybody can access funds in temp account)
-            #define GRAPHENE_TEMP_ACCOUNT (graphene::chain::account_id_type(4))
-/// Represents the canonical account for specifying you will vote directly (as opposed to a proxy)
-            #define GRAPHENE_PROXY_TO_SELF_ACCOUNT (graphene::chain::account_id_type(5))
-/// Sentinel value used in the scheduler.
-            #define GRAPHENE_NULL_WITNESS (graphene::chain::witness_id_type(0))
-///@}
-
-            #define GRAPHENE_FBA_STEALTH_DESIGNATED_ASSET (asset_id_type(1))*/
+    public static String sChniaId;
 
 }

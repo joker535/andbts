@@ -4,14 +4,15 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
 import com.google.gson.JsonSerializationContext;
 import com.google.gson.JsonSerializer;
+import com.google.gson.annotations.Expose;
 
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -25,7 +26,7 @@ import cn.guye.bitshares.models.Authority;
 import cn.guye.bitshares.models.GrapheneObject;
 import cn.guye.bitshares.models.Memo;
 
-import static cn.guye.bitshares.wallet.config.GRAPHENE_BLOCKCHAIN_PRECISION;
+import static cn.guye.bitshares.models.chain.config.GRAPHENE_BLOCKCHAIN_PRECISION;
 
 public class Operations {
     public static final int ID_TRANSER_OPERATION = 0;
@@ -37,6 +38,7 @@ public class Operations {
 
     public static operation_id_map operations_map = new operation_id_map();
 
+    @Expose(serialize = false, deserialize = false)
     public int type;
 
     public static class operation_id_map {
@@ -158,6 +160,9 @@ public class Operations {
         public Memo memo;
         public Set extensions;
 
+        public TransferOperation(){
+            type = ID_TRANSER_OPERATION;
+        }
 
         @Override
         public List<Authority> get_required_authorities() {
@@ -262,13 +267,18 @@ public class Operations {
         public AssetAmount amount_to_sell;
         public AssetAmount min_to_receive;
 
+
+        public LimitOrderCreateOperation(){
+            type = ID_CREATE_LIMIT_ORDER_OPERATION;
+        }
+
         /// The order will be removed from the books if not filled by expiration
         /// Upon expiration, all unsold asset will be returned to seller
         public Date expiration; // = time_point_sec::maximum();
 
         /// If this flag is set the entire order must be filled or the operation is rejected
         public boolean fill_or_kill = false;
-        public Set extensions;
+        public Set extensions = Collections.EMPTY_SET;
 
 
         @Override
@@ -359,6 +369,10 @@ public class Operations {
             long fee = 0;
         };
 
+        public LimitOrderCancelOperation() {
+            type = ID_CANCEL_LMMIT_ORDER_OPERATION;
+        }
+
         public AssetAmount fee;
         public String order;
         /**
@@ -444,6 +458,10 @@ public class Operations {
             long fee = 20 * GRAPHENE_BLOCKCHAIN_PRECISION;
         };
 
+        public CallOrderUpdateOperation() {
+            type = ID_UPDATE_LMMIT_ORDER_OPERATION;
+        }
+
         AssetAmount fee;
         String funding_account; ///< pays fee, collateral, and cover
         AssetAmount delta_collateral; ///< the amount of collateral to add to the margin position
@@ -528,6 +546,9 @@ public class Operations {
         public Authority active;
         public AccountOptions options;
 
+        public AccountCreateOperation() {
+            type = ID_CREATE_ACCOUNT_OPERATION;
+        }
 
         public long calculate_fee(fee_parameters_type feeParametersType) {
 //            long lFeeRequired = feeParametersType.basic_fee;

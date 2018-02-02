@@ -6,6 +6,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -33,14 +34,14 @@ public class transaction {
      * number followed by the actual block hash, so this field should be set using the second 32 bits in the
      * @ref block_id_type
      */
-    public UnsignedInteger ref_block_prefix = UnsignedInteger.ZERO;
+    public BigInteger ref_block_prefix = BigInteger.ZERO;
 
     /**
      * This field specifies the absolute expiration for this transaction.
      */
     public Date expiration;
-    public List<Operations> operations;
-    public Set extensions;
+    public List<Operations> operations = new ArrayList<>();
+    public Set extensions = new HashSet();
 
     public ripemd160_object id() {
         return null;
@@ -50,7 +51,7 @@ public class transaction {
         ref_block_num = new BigInteger(String.valueOf((short) bitutil.endian_reverse_u32(reference_block.hash[0])));
 
         //ref_block_prefix = new UnsignedInteger(reference_block.hash[1]);
-        ref_block_prefix = UnsignedInteger.fromIntBits(reference_block.hash[1]);
+        ref_block_prefix = BigInteger.valueOf(reference_block.hash[1]);
     }
 
     public void set_expiration(Date expiration_time) {

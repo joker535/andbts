@@ -6,6 +6,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 
@@ -39,7 +40,7 @@ public class JRpcImpl implements JRpc {
 	}
 
 	@Override
-	public long call(String method, Object[] params, RpcCallBack callback) {
+	public long call(String method, JsonArray params, RpcCallBack callback) {
 		RpcCall call = new RpcCall(id.getAndIncrement(), method, params);
 		call.setCallback(callback);
 		synchronized (this) {
@@ -80,7 +81,7 @@ public class JRpcImpl implements JRpc {
 
 		@Override
 		public void onFailure(WebSocket webSocket, Throwable t, Response response) {
-			System.out.println("faile : " + t.getMessage());
+			t.printStackTrace();
 		}
 
 		@Override

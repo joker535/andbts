@@ -1,7 +1,7 @@
 package cn.guye.bitshares;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonArray;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 
 import java.io.Serializable;
@@ -10,11 +10,19 @@ import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicInteger;
 
+import cn.guye.bitshares.fc.crypto.ripemd160_object;
+import cn.guye.bitshares.models.AccountOptions;
+import cn.guye.bitshares.models.AssetAmount;
+import cn.guye.bitshares.models.Authority;
+import cn.guye.bitshares.models.LimitOrder;
+import cn.guye.bitshares.models.OperationHistory;
+import cn.guye.bitshares.models.chain.Operations;
+import cn.guye.bitshares.models.chain.config;
+import cn.guye.bitshares.wallet.compact_signature;
+import cn.guye.bitshares.wallet.types;
 import cn.guye.tools.jrpclib.JRpc;
 import cn.guye.tools.jrpclib.JRpcHelper;
-import cn.guye.tools.jrpclib.RpcCall;
 import cn.guye.tools.jrpclib.RpcNotice;
 import cn.guye.tools.jrpclib.RpcReturn;
 
@@ -31,6 +39,7 @@ public class BtsApi {
     private List<BtsRpcListener> btsHandles = new LinkedList<>();
     private List<DataListener> dataLinstener = new LinkedList<>();
     private Map<String , Integer> apiIds = new HashMap<>(4);
+    private Map<Long, String> callIds = new HashMap<Long, String>();
     private Gson gson;
 
     private BtsHandle btsHandle;
@@ -41,6 +50,19 @@ public class BtsApi {
         btsCallBack = new BtsCallBack();
         jRpc = JRpcHelper.getJRpc(url,btsHandle);
         jRpc.setNoticeHandle(btsHandle);
+        gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
+                .registerTypeAdapter(OperationHistory.class, new OperationHistory.OperationHistoryDeserializer())
+                .registerTypeAdapter(Authority.class,new Authority.AuthorityDeserializer())
+                .registerTypeAdapter(types.public_key_type.class,new types.public_key_type_deserializer())
+                .registerTypeAdapter(AssetAmount.class, new AssetAmount.AssetAmountDeserializer())
+                .registerTypeAdapter(AccountOptions.class,new AccountOptions.AccountOptionsDeserializer())
+                .registerTypeAdapter(LimitOrder.class,new LimitOrder.LimitOrderDeserializer())
+                .registerTypeAdapter(AssetAmount.class, new AssetAmount.AssetAmountSerializer())
+                .registerTypeAdapter(Operations.class,new Operations.OperationDeserializer())
+                .registerTypeAdapter(Operations.class,new Operations.OperationSerializer())
+                .registerTypeAdapter(ripemd160_object.class, new ripemd160_object.ripemd160_object_deserializer())
+                .registerTypeAdapter(compact_signature.class, new compact_signature.compact_signature_serializer())
+                .create();
     }
 
     public void start(){
@@ -50,6 +72,15 @@ public class BtsApi {
     public int getStatus() {
         return status;
     }
+
+    public <T> T parse(JsonElement jsonElement,Class<T> tClass){
+        return gson.fromJson(jsonElement,tClass);
+    }
+
+    public String toJson(Object o) {
+        return gson.toJson(o);
+    }
+
 
     public interface DataListener{
         public void onResult(RpcReturn result);
@@ -84,7 +115,7 @@ public class BtsApi {
         params.add(0,apiId);
         params.add(1,method);
         params.add(2,param);
-        return jRpc.call(RPC.CALL,params.toArray(),btsCallBack);
+        return jRpc.call(RPC.CALL,gson.toJsonTree(params).getAsJsonArray(),btsCallBack);
     }
 
     public long call(int apiId , String method , List param){
@@ -92,7 +123,7 @@ public class BtsApi {
         params.add(0,apiId);
         params.add(1,method);
         params.add(2,param);
-        return jRpc.call(RPC.CALL,params.toArray(),btsCallBack);
+        return jRpc.call(RPC.CALL,gson.toJsonTree(params).getAsJsonArray(),btsCallBack);
     }
 
     private class BtsHandle implements JRpc.RpcHandle, JRpc.RpcNoticeHandle {
@@ -109,7 +140,8 @@ public class BtsApi {
         @Override
         public void onConnect() {
             status = STATUS_CONNECTION;
-            RPC.login(BtsApi.this,"","");
+            long id = RPC.login(BtsApi.this,"","");
+            callIds.put(id,RPC.CALL_LOGIN);
         }
 
         @Override
@@ -128,21 +160,30 @@ public class BtsApi {
             if(result.getError() != null){
 
             }else{
-                if(result.getCall().getParams()[1].equals(RPC.CALL_LOGIN)){
-                    RPC.database(BtsApi.this);
-                }else if(result.getCall().getParams()[1].equals(RPC.CALL_DATABASE)){
+                long id = result.getId();
+                if(RPC.CALL_LOGIN.equals(callIds.get(id))){
+                    id = RPC.database(BtsApi.this);
+                    callIds.put(id , RPC.CALL_DATABASE);
+                }else if(RPC.CALL_DATABASE.equals(callIds.get(id))){
                     apiIds.put(RPC.CALL_DATABASE , result.getResult().getAsInt());
-                    RPC.history(BtsApi.this);
-                }else if(result.getCall().getParams()[1].equals(RPC.CALL_HISTORY)){
+                    id = RPC.history(BtsApi.this);
+                    callIds.put(id , RPC.CALL_HISTORY);
+                }else if(RPC.CALL_HISTORY.equals(callIds.get(id))){
                     apiIds.put(RPC.CALL_HISTORY , result.getResult().getAsInt());
-                    RPC.network_broadcast(BtsApi.this);
-                }else if(result.getCall().getParams()[1].equals(RPC.CALL_NETWORK_BROADCAST)){
+                    id = RPC.network_broadcast(BtsApi.this);
+                    callIds.put(id , RPC.CALL_NETWORK_BROADCAST);
+                }else if(RPC.CALL_NETWORK_BROADCAST.equals(callIds.get(id))){
                     apiIds.put(RPC.CALL_NETWORK_BROADCAST , result.getResult().getAsInt());
+                    id = RPC.get_chain_id(apiIds.get(RPC.CALL_DATABASE),BtsApi.this);
+                    callIds.put(id , RPC.CALL_GET_CHAIN_ID);
+                }else if(RPC.CALL_GET_CHAIN_ID.equals(callIds.get(id))){
+                    config.sChniaId = result.getResult().getAsString();
                     status = STATUS_CONNECTED;
                     for (BtsRpcListener b:
                          btsHandles) {
                         b.onOpen();
                     }
+                    callIds.clear();
                 }else{
                     for (DataListener dl:dataLinstener) {
                         dl.onResult(result);

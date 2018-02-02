@@ -8,12 +8,17 @@ import java.util.List;
 import java.util.TimeZone;
 
 import cn.guye.bitshares.BtsApi;
+import cn.guye.bitshares.models.chain.Operations;
+import cn.guye.bitshares.models.chain.signed_transaction;
+import cn.guye.bts.WalletFragment;
 
 import static cn.guye.bitshares.RPC.CALL_DATABASE;
 import static cn.guye.bitshares.RPC.CALL_GET_ACCOUNT_BY_NAME;
+import static cn.guye.bitshares.RPC.CALL_GET_DYNAMIC_GLOBAL_PROPERTIES;
 import static cn.guye.bitshares.RPC.CALL_GET_FULL_ACCOUNTS;
 import static cn.guye.bitshares.RPC.CALL_GET_MARKET_HISTORY;
 import static cn.guye.bitshares.RPC.CALL_GET_PROPOSED_TRANSACTIONS;
+import static cn.guye.bitshares.RPC.CALL_GET_REQUIRED_FEES;
 import static cn.guye.bitshares.RPC.CALL_GET_TRADE_HISTORY;
 import static cn.guye.bitshares.RPC.CALL_HISTORY;
 import static cn.guye.bitshares.RPC.CALL_LOGIN;
@@ -22,6 +27,7 @@ import static cn.guye.bitshares.RPC.CALL_LOOKUP_ASSET_SYMBOLS;
 import static cn.guye.bitshares.RPC.CALL_NETWORK_BROADCAST;
 import static cn.guye.bitshares.RPC.CALL_SET_SUBSCRIBE_CALLBACK;
 import static cn.guye.bitshares.RPC.CALL_SUBSCRIBE_TO_MARKET;
+import static cn.guye.bitshares.RPC.CALL_VALIDATE_TRANSACTION;
 import static cn.guye.bitshares.RPC.GET_ACCOUNT_BALANCES;
 
 /**
@@ -111,5 +117,22 @@ public class BtsRequestHelper {
         listParams.add(ids);
         listParams.add(isSub);
         return new BtsRequest(api,CALL_GET_FULL_ACCOUNTS ,listParams.toArray(), callBack);
+    }
+
+    public static BtsRequest get_required_fees(String api, Operations[] o, String asset, BtsRequest.CallBack  callBack) {
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(o);
+        listParams.add(asset);
+        return new BtsRequest(api,CALL_GET_REQUIRED_FEES ,listParams.toArray(), callBack);
+    }
+
+    public static BtsRequest get_dynamic_global_properties(String api, BtsRequest.CallBack  callBack) {
+        return new BtsRequest(api,CALL_GET_DYNAMIC_GLOBAL_PROPERTIES ,new Object[]{}, callBack);
+    }
+
+    public static BtsRequest verify_authority(String api, signed_transaction tx, BtsRequest.CallBack  callBack) {
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(tx);
+        return new BtsRequest(api,CALL_VALIDATE_TRANSACTION ,listParams.toArray(), callBack);
     }
 }

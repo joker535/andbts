@@ -1,6 +1,7 @@
 package cn.guye.bitshares.wallet;
 
 
+import java.io.ByteArrayOutputStream;
 import java.math.BigInteger;
 import java.nio.charset.Charset;
 import java.security.InvalidAlgorithmParameterException;
@@ -20,16 +21,21 @@ import org.spongycastle.crypto.digests.SHA256Digest;
 import org.spongycastle.jcajce.provider.asymmetric.ec.BCECPrivateKey;
 import org.spongycastle.jcajce.provider.asymmetric.ec.BCECPublicKey;
 import org.spongycastle.jce.spec.*;
+import org.spongycastle.math.ec.ECPoint;
 
 import cn.guye.bitshares.crypto.Base58;
 import cn.guye.bitshares.crypto.ECKey;
 import cn.guye.bitshares.crypto.EcTools;
+import cn.guye.bitshares.crypto.HmacPRNG;
 import cn.guye.bitshares.crypto.Parameters;
+
 import cn.guye.bitshares.crypto.Point;
 import cn.guye.bitshares.crypto.RandomSource;
 import cn.guye.bitshares.errors.MalformedAddressException;
 import cn.guye.bitshares.fc.crypto.sha256_object;
 import cn.guye.bitshares.fc.crypto.sha512_object;
+
+import static cn.guye.bitshares.crypto.ByteUtil.bigIntegerToBytes;
 
 public class PrivateKey {
     private byte[] key_data = new byte[32];
@@ -97,33 +103,14 @@ public class PrivateKey {
     }
 
     public PublicKey get_public_key() {
-        try {
-            ECNamedCurveParameterSpec secp256k1 = org.spongycastle.jce.ECNamedCurveTable.getParameterSpec("secp256k1");
-            org.spongycastle.jce.spec.ECPrivateKeySpec privSpec = new org.spongycastle.jce.spec.ECPrivateKeySpec(new BigInteger(1, key_data), secp256k1);
-            KeyFactory keyFactory = KeyFactory.getInstance("EC","SC");
 
-            byte[] keyBytes = new byte[33];
-            System.arraycopy(key_data, 0, keyBytes, 1, 32);
-            BigInteger privateKeys = new BigInteger(keyBytes);
-            BCECPrivateKey privateKey = (BCECPrivateKey) keyFactory.generatePrivate(privSpec);
+        byte[] keyBytes = new byte[33];
+        System.arraycopy(key_data, 0, keyBytes, 1, 32);
 
-            Point Q = EcTools.multiply(Parameters.G, privateKeys);
+        ECKey ecKey = ECKey.fromPrivate(keyBytes);
 
-            //ECPoint ecPoint = ECKey.CURVE.getG().multiply(privateKeys);
-            org.spongycastle.math.ec.ECPoint ecpubPoint = new org.spongycastle.math.ec.custom.sec.SecP256K1Curve().createPoint(Q.getX().toBigInteger(), Q.getY().toBigInteger());
-            java.security.PublicKey publicKey = keyFactory.generatePublic(new org.spongycastle.jce.spec.ECPublicKeySpec(ecpubPoint, secp256k1));
+        return new PublicKey(ecKey.getPubKey());
 
-            BCECPublicKey bcecPublicKey = (BCECPublicKey)publicKey;
-            byte bytePublic[] = bcecPublicKey.getQ().getEncoded(true);
-
-            return new PublicKey(bytePublic);
-        } catch (InvalidKeySpecException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchProviderException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private PrivateKey(KeyPair ecKey){
@@ -138,31 +125,22 @@ public class PrivateKey {
 
     public compact_signature sign_compact(sha256_object digest, boolean require_canonical ) {
         compact_signature signature = null;
-//        try {
-//            final HmacPRNG prng = new HmacPRNG(key_data);
-//            RandomSource randomSource = new RandomSource() {
-//                @Override
-//                public void nextBytes(byte[] bytes) {
-//                    prng.nextBytes(bytes);
-//                }
-//            };
-//
-//            while (true) {
-//                InMemoryPrivateKey inMemoryPrivateKey = new InMemoryPrivateKey(key_data);
-//                SignedMessage signedMessage = inMemoryPrivateKey.signHash(new Sha256Hash(digest.hash), randomSource);
-//                byte[] byteCompact = signedMessage.bitcoinEncodingOfSignature();
-//                signature = new compact_signature(byteCompact);
-//
-//                boolean bResult = PublicKey.is_canonical(signature);
-//                if (bResult == true) {
-//                    break;
-//                }
-//            }
-//        } catch (NoSuchAlgorithmException e) {
-//            e.printStackTrace();
-//        }
 
+        byte[] keyBytes = new byte[33];
+        System.arraycopy(key_data, 0, keyBytes, 1, 32);
+
+        ECKey ecKey = ECKey.fromPrivate(keyBytes);
+
+        signature = new compact_signature(derEncode(ecKey.sign(digest.hash)));
         return signature;
+    }
+
+    public byte[] derEncode(ECKey.ECDSASignature s) { //todo emit Subclass instead, with cached encoding
+        byte[] sigData = new byte[65];  // 1 header + 32 bytes for R + 32 bytes for S
+        sigData[0] = s.v;
+        System.arraycopy(bigIntegerToBytes(s.r, 32), 0, sigData, 1, 32);
+        System.arraycopy(bigIntegerToBytes(s.s, 32), 0, sigData, 33, 32);
+        return sigData;
     }
 
     public static PrivateKey from_seed(String strSeed) {

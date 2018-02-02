@@ -16,7 +16,7 @@ public class compact_signature {
         System.arraycopy(signature, 0, data, 0, signature.length);
     }
 
-    static class compact_signature_serializer implements JsonSerializer<compact_signature> {
+    public  static class compact_signature_serializer implements JsonSerializer<compact_signature> {
 
         @Override
         public JsonElement serialize(compact_signature src,

@@ -19,6 +19,8 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.util.Date;
 
 import cn.guye.bitshares.BtsApi;
 import cn.guye.bitshares.ErrorCode;
@@ -26,18 +28,25 @@ import cn.guye.bitshares.RPC;
 import cn.guye.bitshares.errors.MalformedAddressException;
 import cn.guye.bitshares.models.Address;
 import cn.guye.bitshares.models.Asset;
+import cn.guye.bitshares.models.AssetAmount;
 import cn.guye.bitshares.models.FullAccountObject;
+import cn.guye.bitshares.models.GrapheneObject;
 import cn.guye.bitshares.models.LimitOrder;
 import cn.guye.bitshares.models.Price;
 import cn.guye.bitshares.models.backup.FileBin;
 import cn.guye.bitshares.models.backup.LinkedAccount;
 import cn.guye.bitshares.models.backup.WalletBackup;
+import cn.guye.bitshares.models.chain.Operations;
+import cn.guye.bitshares.models.chain.dynamic_global_property_object;
+import cn.guye.bitshares.models.chain.signed_transaction;
+
 import cn.guye.bts.contorl.BtsContorler;
 import cn.guye.bts.contorl.BtsRequest;
 import cn.guye.bts.contorl.BtsRequestHelper;
 import cn.guye.bitshares.wallet.AccountObject;
 import cn.guye.bitshares.wallet.PrivateKey;
 import cn.guye.bitshares.wallet.types;
+import cn.guye.bts.contorl.MyWallet;
 import cn.guye.tools.jrpclib.JRpcError;
 
 /**
@@ -48,6 +57,9 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
 
 
     private TextView textView;
+    private WalletBackup walletBackup;
+    private FullAccountObject[] fullAccountObject;
+    private Operations.LimitOrderCreateOperation o;
 
     @Nullable
     @Override
@@ -63,13 +75,13 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
         if(request.getMethod().equals(RPC.CALL_GET_ACCOUNT_BY_NAME)){
             AccountObject my = BtsContorler.getInstance().parse(data,AccountObject.class);
 
-            BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE,new String[]{"guye535","joker53535"},false,this);
+            BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE,new String[]{"guye535","zipian3"},false,this);
             BtsContorler.getInstance().send(r);
 
-        }else{
+        }else if(request.getMethod().equals(RPC.CALL_GET_FULL_ACCOUNTS)){
             JsonArray array = data.getAsJsonArray();
 
-            FullAccountObject[] fullAccountObject = new FullAccountObject[array.size()];
+            fullAccountObject = new FullAccountObject[array.size()];
             final StringBuilder sb = new StringBuilder();
             for (int i  = 0 ; i < fullAccountObject.length ; i++){
                 fullAccountObject[i] = BtsContorler.getInstance().parse(array.get(i).getAsJsonArray().get(1),FullAccountObject.class);
@@ -103,8 +115,47 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
                 }
             });
 
-//            importfile();
+            o = new Operations.LimitOrderCreateOperation();
+            o.amount_to_sell = new AssetAmount(new BigDecimal(10000000),new GrapheneObject("1.3.0"));
+            o.expiration = new Date(System.currentTimeMillis() + 365 * 24 * 60 *60 * 1000);
+            o.fee = new AssetAmount(new BigDecimal(0),new GrapheneObject("1.3.0"));
+            o.min_to_receive = new AssetAmount(new BigDecimal(100000000000000L),new GrapheneObject("1.3.131"));
+            o.seller = fullAccountObject[1].account.getObjectId();
+            o.fill_or_kill = false;
 
+
+            BtsRequest r = BtsRequestHelper.get_required_fees(RPC.CALL_DATABASE,new Operations[]{o},"1.3.0",this);
+            BtsContorler.getInstance().send(r);
+
+            importfile();
+
+        }else if(request.getMethod().equals(RPC.CALL_GET_REQUIRED_FEES)){
+            AssetAmount aa = BtsContorler.getInstance().parse(data.getAsJsonArray().get(0),AssetAmount.class);
+            o.fee = aa;
+
+            BtsRequest r = BtsRequestHelper.get_dynamic_global_properties(RPC.CALL_DATABASE,this);
+            BtsContorler.getInstance().send(r);
+
+        }else if(request.getMethod().equals(RPC.CALL_GET_DYNAMIC_GLOBAL_PROPERTIES)){
+
+            dynamic_global_property_object d = BtsContorler.getInstance().parse(data,dynamic_global_property_object.class);
+            MyWallet my = new MyWallet();
+
+            signed_transaction signed_transaction = new signed_transaction();
+            signed_transaction.operations.add(o);
+            signed_transaction.expiration = o.expiration;
+
+
+            String bk = walletBackup.getWallet(0).decryptBrainKey("woaimaomao535");
+            my.import_brain_key(fullAccountObject[1].account.name,bk,fullAccountObject[1].account);
+
+            my.sign_transaction(signed_transaction,walletBackup,d,fullAccountObject[1].account);
+
+            BtsRequest r = BtsRequestHelper.verify_authority(RPC.CALL_DATABASE,signed_transaction,this);
+            BtsContorler.getInstance().send(r);
+
+        }else{
+            System.out.println(data.toString());
         }
     }
 
@@ -113,45 +164,45 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
 
     }
 
-//    public void importfile(){
-//        File file = new File(Environment.getExternalStorageDirectory(),"/bts_test_20180125.bin");
-//        if (file.exists() == false) {
-//            return;
-//        }
-//
-//        int nSize = (int)file.length();
-//
-//        final byte[] byteContent = new byte[nSize];
-//
-//        FileInputStream fileInputStream;
-//        try {
-//            fileInputStream = new FileInputStream(file);
-//            fileInputStream.read(byteContent, 0, byteContent.length);
-//        } catch (FileNotFoundException e) {
-//            e.printStackTrace();
-//            return ;
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//            return ;
-//        }
-//
-//        WalletBackup walletBackup = FileBin.deserializeWalletBackup(byteContent, "woaimaomao535");
-//        if (walletBackup == null) {
-//            return ;
-//        }
-//
-//        String strBrainKey = walletBackup.getWallet(0).decryptBrainKey("woaimaomao535");
-//        //LinkedAccount linkedAccount = walletBackup.getLinkedAccounts()[0];
-//
-//        int nRet = ErrorCode.ERROR_IMPORT_NOT_MATCH_PRIVATE_KEY;
-//        for (LinkedAccount linkedAccount : walletBackup.getLinkedAccounts()) {
-//            nRet = import_brain_key(linkedAccount.getName(), "woaimaomao535", strBrainKey);
-//            if (nRet == 0) {
-//                break;
-//            }
-//        }
-//
-//    }
+    public void importfile(){
+        File file = new File(Environment.getExternalStorageDirectory(),"/bts_test_20180125.bin");
+        if (file.exists() == false) {
+            return;
+        }
+
+        int nSize = (int)file.length();
+
+        final byte[] byteContent = new byte[nSize];
+
+        FileInputStream fileInputStream;
+        try {
+            fileInputStream = new FileInputStream(file);
+            fileInputStream.read(byteContent, 0, byteContent.length);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+            return ;
+        } catch (IOException e) {
+            e.printStackTrace();
+            return ;
+        }
+
+        walletBackup = FileBin.deserializeWalletBackup(byteContent, "woaimaomao535");
+        if (walletBackup == null) {
+            return ;
+        }
+
+        String strBrainKey = walletBackup.getWallet(0).decryptBrainKey("woaimaomao535");
+        //LinkedAccount linkedAccount = walletBackup.getLinkedAccounts()[0];
+
+        int nRet = ErrorCode.ERROR_IMPORT_NOT_MATCH_PRIVATE_KEY;
+        for (LinkedAccount linkedAccount : walletBackup.getLinkedAccounts()) {
+            nRet = import_brain_key(linkedAccount.getName(), "woaimaomao535", strBrainKey);
+            if (nRet == 0) {
+                break;
+            }
+        }
+
+    }
 
     public int import_brain_key(String strAccountNameOrId,
                                 String strPassword,

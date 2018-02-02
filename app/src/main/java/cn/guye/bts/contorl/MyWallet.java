@@ -6,12 +6,17 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import cn.guye.bitshares.ErrorCode;
 import cn.guye.bitshares.crypto.ECKey;
+import cn.guye.bitshares.crypto.Utils;
 import cn.guye.bitshares.fc.crypto.aes;
 import cn.guye.bitshares.fc.crypto.sha256_object;
 import cn.guye.bitshares.fc.crypto.sha512_object;
@@ -19,10 +24,17 @@ import cn.guye.bitshares.fc.io.base_encoder;
 import cn.guye.bitshares.fc.io.datastream_encoder;
 import cn.guye.bitshares.fc.io.datastream_size_encoder;
 import cn.guye.bitshares.fc.io.RawType;
+import cn.guye.bitshares.models.Authority;
+import cn.guye.bitshares.models.backup.PrivateKeyBackup;
+import cn.guye.bitshares.models.backup.WalletBackup;
+import cn.guye.bitshares.models.chain.config;
+import cn.guye.bitshares.models.chain.dynamic_global_property_object;
+import cn.guye.bitshares.models.chain.signed_transaction;
 import cn.guye.bitshares.wallet.AccountObject;
 import cn.guye.bitshares.wallet.BrainKey;
 import cn.guye.bitshares.wallet.PrivateKey;
 import cn.guye.bitshares.wallet.PublicKey;
+import cn.guye.bitshares.wallet.types;
 
 
 /**
@@ -111,13 +123,12 @@ public class MyWallet {
 
     }
 
-    private wallet_object mWalletObject;
+    private wallet_object mWalletObject = new wallet_object();
     private boolean mbLogin = false;
     private HashMap<PublicKey, PrivateKey> mHashMapPub2Priv = new HashMap<>();
     private sha512_object mCheckSum = new sha512_object();
 
-    public int import_brain_key(String strAccountNameOrId, String strBrainKey) {
-        AccountObject accountObject = get_account(strAccountNameOrId);
+    public int import_brain_key(String strAccountNameOrId, String strBrainKey , AccountObject accountObject) {
         if (accountObject == null) {
             return ErrorCode.ERROR_NO_ACCOUNT_OBJECT;
         }
@@ -296,12 +307,42 @@ public class MyWallet {
     }
 
     public boolean is_locked() {
-        if (mWalletObject.cipher_keys.array().length > 0 &&
+        if (mWalletObject.cipher_keys != null && mWalletObject.cipher_keys.array().length > 0 &&
                 mCheckSum.equals(new sha512_object())) {
             return true;
         }
 
         return false;
+    }
+
+    public int unlock(String strPassword) {
+        assert(strPassword.length() > 0);
+        sha512_object passwordHash = sha512_object.create_from_string(strPassword);
+        byte[] byteKey = new byte[32];
+        System.arraycopy(passwordHash.hash, 0, byteKey, 0, byteKey.length);
+        byte[] ivBytes = new byte[16];
+        System.arraycopy(passwordHash.hash, 32, ivBytes, 0, ivBytes.length);
+
+        ByteBuffer byteDecrypt = aes.decrypt(byteKey, ivBytes, mWalletObject.cipher_keys.array());
+        if (byteDecrypt == null || byteDecrypt.array().length == 0) {
+            return -1;
+        }
+
+        plain_keys dataResult = plain_keys.from_input_stream(
+                new ByteArrayInputStream(byteDecrypt.array())
+        );
+
+        for (Map.Entry<PublicKey, String> entry : dataResult.keys.entrySet()) {
+            PrivateKey privateKeyType = new PrivateKey(entry.getValue());
+            mHashMapPub2Priv.put(entry.getKey(), privateKeyType);
+        }
+
+        mCheckSum = passwordHash;
+        if (passwordHash.equals(dataResult.checksum)) {
+            return 0;
+        } else {
+            return -1;
+        }
     }
 
     private void encrypt_keys() {
@@ -339,33 +380,89 @@ public class MyWallet {
         return 0;
     }
 
-    public int unlock(String strPassword) {
-        assert(strPassword.length() > 0);
-        sha512_object passwordHash = sha512_object.create_from_string(strPassword);
-        byte[] byteKey = new byte[32];
-        System.arraycopy(passwordHash.hash, 0, byteKey, 0, byteKey.length);
-        byte[] ivBytes = new byte[16];
-        System.arraycopy(passwordHash.hash, 32, ivBytes, 0, ivBytes.length);
+    public signed_transaction sign_transaction(signed_transaction tx, WalletBackup walletBackup , dynamic_global_property_object dynamicGlobalPropertyObject , AccountObject a) {
+        // // TODO: 07/09/2017 这里的set应出问题
+        signed_transaction.required_authorities requiresAuthorities = tx.get_required_authorities();
 
-        ByteBuffer byteDecrypt = aes.decrypt(byteKey, ivBytes, mWalletObject.cipher_keys.array());
-        if (byteDecrypt == null || byteDecrypt.array().length == 0) {
-            return -1;
+        Set<String> req_active_approvals = new HashSet<>();
+        req_active_approvals.addAll(requiresAuthorities.active);
+
+        Set<String> req_owner_approvals = new HashSet<>();
+        req_owner_approvals.addAll(requiresAuthorities.owner);
+
+
+        for (Authority authorityObject : requiresAuthorities.other) {
+            for (String accountObjectId : authorityObject.getAccountAuths().keySet()) {
+                req_active_approvals.add(accountObjectId);
+            }
         }
 
-        plain_keys dataResult = plain_keys.from_input_stream(
-                new ByteArrayInputStream(byteDecrypt.array())
-        );
+        Set<String> accountObjectAll = new HashSet<>();
+        accountObjectAll.addAll(req_active_approvals);
+        accountObjectAll.addAll(req_owner_approvals);
 
-        for (Map.Entry<PublicKey, String> entry : dataResult.keys.entrySet()) {
-            PrivateKey privateKeyType = new PrivateKey(entry.getValue());
-            mHashMapPub2Priv.put(entry.getKey(), privateKeyType);
+
+        List<String> listAccountObjectId = new ArrayList<>();
+        listAccountObjectId.addAll(accountObjectAll);
+
+//        List<AccountObject> listAccountObject = get_accounts(listAccountObjectId);
+        HashMap<String, AccountObject> hashMapIdToObject = new HashMap<>();
+//        for (AccountObject accountObject : listAccountObject) {
+            hashMapIdToObject.put(a.getObjectId(), a);
+//        }
+
+        HashSet<PublicKey> approving_key_set = new HashSet<>();
+        for (String accountObjectId : req_active_approvals) {
+            AccountObject accountObject = hashMapIdToObject.get(accountObjectId);
+            approving_key_set.addAll(accountObject.active.getKeyAuthList());
         }
 
-        mCheckSum = passwordHash;
-        if (passwordHash.equals(dataResult.checksum)) {
-            return 0;
-        } else {
-            return -1;
+        for (String accountObjectId : req_owner_approvals) {
+            AccountObject accountObject = hashMapIdToObject.get(accountObjectId);
+            approving_key_set.addAll(accountObject.owner.getKeyAuthList());
         }
+
+        for (Authority authorityObject : requiresAuthorities.other) {
+            for (PublicKey publicKeyType : authorityObject.getKeyAuthList()) {
+                approving_key_set.add(publicKeyType);
+            }
+        }
+
+        // // TODO: 07/09/2017 被简化了
+        tx.set_reference_block(dynamicGlobalPropertyObject.head_block_id);
+
+        Date dateObject = dynamicGlobalPropertyObject.time;
+        Calendar calender = Calendar.getInstance();
+        calender.setTime(dateObject);
+        calender.add(Calendar.SECOND, 30);
+
+        dateObject = calender.getTime();
+
+        tx.set_expiration(dateObject);
+
+        for (PublicKey pulicKeyType : approving_key_set) {
+            PrivateKey privateKey = null;
+            PrivateKeyBackup[] pkbs = walletBackup.getPrivateKeys();
+            for (PrivateKeyBackup pbk:
+                    pkbs) {
+                if(pbk.pubkey.equals(pulicKeyType.getAddress())){
+//                    if(is_locked()){
+//                        unlock("woaimaomao535");
+//                    }
+                    privateKey = mHashMapPub2Priv.get(pulicKeyType);
+                }
+            }
+            if (privateKey != null) {
+                tx.sign(privateKey, sha256_object.create_from_string(config.sChniaId));
+            }
+        }
+
+        return tx;
+    }
+
+
+
+    private List<AccountObject> get_accounts(List<String> listAccountObjectId) {
+        return null;
     }
 }

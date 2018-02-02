@@ -21,7 +21,7 @@ import java.util.HashSet;
 import cn.guye.bitshares.crypto.Base58;
 import cn.guye.bitshares.errors.MalformedAddressException;
 
-import static cn.guye.bitshares.wallet.config.GRAPHENE_ADDRESS_PREFIX;
+import static cn.guye.bitshares.models.chain.config.GRAPHENE_ADDRESS_PREFIX;
 
 
 public class types {

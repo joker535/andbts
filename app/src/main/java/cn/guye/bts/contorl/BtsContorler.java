@@ -22,7 +22,9 @@ import cn.guye.bitshares.models.Authority;
 import cn.guye.bitshares.models.BucketObject;
 import cn.guye.bitshares.models.GrapheneObject;
 import cn.guye.bitshares.models.LimitOrder;
+import cn.guye.bitshares.models.ObjectType;
 import cn.guye.bitshares.models.OperationHistory;
+import cn.guye.bitshares.models.chain.Operations;
 import cn.guye.bts.R;
 import cn.guye.bts.app.BtsApp;
 import cn.guye.bts.data.DataCenter;
@@ -53,14 +55,6 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
         api = new BtsApi("wss://bitshares-api.wancloud.io/ws");
         api.addBtsListener(this);
         api.addDataListener(this);
-        gson = new GsonBuilder().setDateFormat("yyyy-MM-dd'T'HH:mm:ss")
-                .registerTypeAdapter(OperationHistory.class, new OperationHistory.OperationHistoryDeserializer())
-                .registerTypeAdapter(Authority.class,new Authority.AuthorityDeserializer())
-                .registerTypeAdapter(types.public_key_type.class,new types.public_key_type_deserializer())
-                .registerTypeAdapter(AssetAmount.class, new AssetAmount.AssetAmountDeserializer())
-                .registerTypeAdapter(AccountOptions.class,new AccountOptions.AccountOptionsDeserializer())
-                .registerTypeAdapter(LimitOrder.class,new LimitOrder.LimitOrderDeserializer())
-                .create();
     }
     private static BtsContorler instance;
 
@@ -73,12 +67,14 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
 
 
     public <T> T parse(JsonElement jsonElement,Class<T> tClass){
-        return gson.fromJson(jsonElement,tClass);
+        return api.parse(jsonElement,tClass);
+    }
+
+    public String toJson(Object o) {
+        return api.toJson(o);
     }
 
     private BtsApi api;
-
-    private Gson gson;
 
     public void regDataChange(DataCenter.DataChangeHandler handler){
         dataCenter.addDataHandle(handler);
@@ -133,8 +129,6 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
     @Override
     public void onResult(RpcReturn result) {
         BtsResultEvent event ;
-        Object[] param = new Object[result.getCall().getParams().length -2];
-        System.arraycopy(result.getCall().getParams(),2,param,0 ,param.length);
         if(result.getError() != null){
             BtsRequest request = requests.get(result.getId());
             if(request != null && request.getCallBack() != null){
@@ -180,11 +174,11 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
                 GrapheneObject grapheneObject = new GrapheneObject(id);
                 switch(grapheneObject.getObjectType()){
                     case ACCOUNT_TRANSACTION_HISTORY_OBJECT:
-                        AccountTransactionHistory transactionHistory = gson.fromJson(params.get(i),AccountTransactionHistory.class);
+                        AccountTransactionHistory transactionHistory = parse(params.get(i),AccountTransactionHistory.class);
                         datas.add(transactionHistory);
                         break;
                     case OPERATION_HISTORY_OBJECT:
-                        OperationHistory operationHistory = gson.fromJson(params.get(i),OperationHistory.class);
+                        OperationHistory operationHistory = parse(params.get(i),OperationHistory.class);
                         datas.add(operationHistory);
                         break;
                     case BUCKET_OBJECT:

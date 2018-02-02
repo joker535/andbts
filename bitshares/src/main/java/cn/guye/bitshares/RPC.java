@@ -37,6 +37,8 @@ public class RPC {
     public static final String CALL_SUBSCRIBE_TO_MARKET = "subscribe_to_market";
     public static final String CALL_GET_PROPOSED_TRANSACTIONS = "get_proposed_transactions";
     public static final String CALL_GET_FULL_ACCOUNTS = "get_full_accounts";
+    public static final String CALL_VALIDATE_TRANSACTION = "validate_transaction";
+    public static final String CALL_GET_CHAIN_ID = "get_chain_id";
 
 
     public static long login(BtsApi api , String uid , String pwd){
@@ -57,5 +59,10 @@ public class RPC {
     public static long network_broadcast(BtsApi api) {
         String[] param = new String[0];
         return api.call(1,CALL_NETWORK_BROADCAST ,param);
+    }
+
+    public static long get_chain_id(int apiid , BtsApi api) {
+        String[] param = new String[0];
+        return api.call(apiid,CALL_GET_CHAIN_ID ,param);
     }
 }
