@@ -31,6 +31,7 @@ import cn.guye.bitshares.crypto.Parameters;
 
 import cn.guye.bitshares.crypto.Point;
 import cn.guye.bitshares.crypto.RandomSource;
+import cn.guye.bitshares.crypto.Utils;
 import cn.guye.bitshares.errors.MalformedAddressException;
 import cn.guye.bitshares.fc.crypto.sha256_object;
 import cn.guye.bitshares.fc.crypto.sha512_object;
@@ -113,6 +114,15 @@ public class PrivateKey {
 
     }
 
+    public ECKey getEC(){
+        byte[] keyBytes = new byte[33];
+        System.arraycopy(key_data, 0, keyBytes, 1, 32);
+
+        ECKey ecKey = ECKey.fromPrivate(keyBytes);
+
+        return ecKey;
+    }
+
     private PrivateKey(KeyPair ecKey){
         BCECPrivateKey privateKey = (BCECPrivateKey) ecKey.getPrivate();
         byte[] privateKeyGenerate = privateKey.getD().toByteArray();
@@ -131,7 +141,26 @@ public class PrivateKey {
 
         ECKey ecKey = ECKey.fromPrivate(keyBytes);
 
-        signature = new compact_signature(derEncode(ecKey.sign(digest.hash)));
+
+        int recId = -1;
+        ECKey.ECDSASignature sig = ecKey.sign(digest.hash);
+
+        // Now we have to work backwards to figure out the recId needed to recover the signature.
+        for (int i = 0; i < 4; i++) {
+            ECKey k = ECKey.recoverFromSignature(i, sig, digest.hash, ecKey.isCompressed());
+            if (k != null && k.getPubKeyPoint().equals(ecKey.getPubKeyPoint())) {
+                recId = i;
+                break;
+            }
+        }
+
+        byte[] sigData = new byte[65];  // 1 header + 32 bytes for R + 32 bytes for S
+        int headerByte = recId + 27 + (ecKey.isCompressed() ? 4 : 0);
+        sigData[0] = (byte) headerByte;
+        System.arraycopy(Utils.bigIntegerToBytes(sig.r, 32), 0, sigData, 1, 32);
+        System.arraycopy(Utils.bigIntegerToBytes(sig.s, 32), 0, sigData, 33, 32);
+
+        signature = new compact_signature(sigData);
         return signature;
     }
 

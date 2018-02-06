@@ -1,5 +1,6 @@
 package cn.guye.bitshares;
 
+import com.google.common.primitives.UnsignedInteger;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
@@ -11,6 +12,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import cn.guye.bitshares.fc.UnsignedShort;
 import cn.guye.bitshares.fc.crypto.ripemd160_object;
 import cn.guye.bitshares.models.AccountOptions;
 import cn.guye.bitshares.models.AssetAmount;
@@ -19,6 +21,7 @@ import cn.guye.bitshares.models.LimitOrder;
 import cn.guye.bitshares.models.OperationHistory;
 import cn.guye.bitshares.models.chain.Operations;
 import cn.guye.bitshares.models.chain.config;
+import cn.guye.bitshares.utils.unsigned_number_serializer;
 import cn.guye.bitshares.wallet.compact_signature;
 import cn.guye.bitshares.wallet.types;
 import cn.guye.tools.jrpclib.JRpc;
@@ -62,6 +65,8 @@ public class BtsApi {
                 .registerTypeAdapter(Operations.class,new Operations.OperationSerializer())
                 .registerTypeAdapter(ripemd160_object.class, new ripemd160_object.ripemd160_object_deserializer())
                 .registerTypeAdapter(compact_signature.class, new compact_signature.compact_signature_serializer())
+                .registerTypeAdapter(UnsignedInteger.class, new unsigned_number_serializer.UnsigendIntegerSerializer())
+                .registerTypeAdapter(UnsignedShort.class, new unsigned_number_serializer.UnsigendShortSerializer())
                 .create();
     }
 

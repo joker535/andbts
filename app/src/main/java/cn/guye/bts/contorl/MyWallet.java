@@ -1,40 +1,33 @@
 package cn.guye.bts.contorl;
 
-import java.io.ByteArrayInputStream;
+import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
-import java.math.BigDecimal;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import cn.guye.bitshares.ErrorCode;
+import cn.guye.bitshares.Util;
 import cn.guye.bitshares.crypto.ECKey;
-import cn.guye.bitshares.crypto.Utils;
-import cn.guye.bitshares.fc.crypto.aes;
-import cn.guye.bitshares.fc.crypto.sha256_object;
-import cn.guye.bitshares.fc.crypto.sha512_object;
-import cn.guye.bitshares.fc.io.base_encoder;
-import cn.guye.bitshares.fc.io.datastream_encoder;
-import cn.guye.bitshares.fc.io.datastream_size_encoder;
-import cn.guye.bitshares.fc.io.RawType;
-import cn.guye.bitshares.models.Authority;
+import cn.guye.bitshares.models.FullAccountObject;
 import cn.guye.bitshares.models.backup.PrivateKeyBackup;
-import cn.guye.bitshares.models.backup.WalletBackup;
-import cn.guye.bitshares.models.chain.config;
-import cn.guye.bitshares.models.chain.dynamic_global_property_object;
-import cn.guye.bitshares.models.chain.signed_transaction;
-import cn.guye.bitshares.wallet.AccountObject;
 import cn.guye.bitshares.wallet.BrainKey;
 import cn.guye.bitshares.wallet.PrivateKey;
 import cn.guye.bitshares.wallet.PublicKey;
-import cn.guye.bitshares.wallet.types;
+import cn.guye.bts.app.BtsApp;
 
 
 /**
@@ -42,178 +35,88 @@ import cn.guye.bitshares.wallet.types;
  */
 
 public class MyWallet {
-    public boolean is_new() {
-        return false;
+
+    private Map<String, PrivateKey> pub2pri = new HashMap<>();
+    private Map<String, String> pub2epri = new HashMap<>();
+    private List<String> pubs;
+
+    public List<FullAccountObject> getAccountObject() {
+        return accountObject;
     }
 
-    class wallet_object {
-        sha256_object chain_id;
-        List<AccountObject> my_accounts = new ArrayList<>();
-        ByteBuffer cipher_keys;
-        HashMap<String, List<PublicKey>> extra_keys = new HashMap<>();
-        String ws_server = "";
-        String ws_user = "";
-        String ws_password = "";
-
-        public void update_account(AccountObject accountObject) {
-            boolean bUpdated = false;
-            for (int i = 0; i < my_accounts.size(); ++i) {
-                if (my_accounts.get(i).getObjectId().equals(accountObject.getObjectId())) {
-                    my_accounts.remove(i);
-                    my_accounts.add(accountObject);
-                    bUpdated = true;
-                    break;
-                }
-            }
-
-            if (bUpdated == false) {
-                my_accounts.add(accountObject);
-            }
-        }
+    public void setAccountObject(List<FullAccountObject> accountObject) {
+        this.accountObject = accountObject;
     }
 
-    static class plain_keys {
-        Map<PublicKey, String> keys;
-        sha512_object checksum;
+    private List<FullAccountObject> accountObject;
 
-        public void write_to_encoder(base_encoder encoder) {
-            RawType rawType = new RawType();
-
-            rawType.pack(encoder, BigDecimal.valueOf(keys.size()));
-            for (Map.Entry<PublicKey, String> entry : keys.entrySet()) {
-                encoder.write(entry.getKey().getKeyByte());
-
-                byte[] byteValue = entry.getValue().getBytes();
-                rawType.pack(encoder, BigDecimal.valueOf(byteValue.length));
-                encoder.write(byteValue);
-            }
-            encoder.write(checksum.hash);
-        }
-
-        public static plain_keys from_input_stream(InputStream inputStream) {
-            plain_keys keysResult = new plain_keys();
-            keysResult.keys = new HashMap<>();
-            keysResult.checksum = new sha512_object();
-
-            RawType rawType = new RawType();
-            BigDecimal size = rawType.unpack(inputStream);
-            try {
-                for (int i = 0; i < size.longValue(); ++i) {
-                    byte[] bytes = new byte[33];
-                    inputStream.read(bytes);
-                    PublicKey publicKeyType = new PublicKey(bytes);
-
-                    BigDecimal strSize = rawType.unpack(inputStream);
-                    byte[] byteBuffer = new byte[strSize.intValue()];
-                    inputStream.read(byteBuffer);
-
-                    String strPrivateKey = new String(byteBuffer);
-
-                    keysResult.keys.put(publicKeyType, strPrivateKey);
-                }
-
-                inputStream.read(keysResult.checksum.hash);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            return keysResult;
-        }
-
-
+    public List<String> getAccounts() {
+        return accounts;
     }
 
-    private wallet_object mWalletObject = new wallet_object();
-    private boolean mbLogin = false;
-    private HashMap<PublicKey, PrivateKey> mHashMapPub2Priv = new HashMap<>();
-    private sha512_object mCheckSum = new sha512_object();
+    private List<String> accounts = new ArrayList<>();
 
-    public int import_brain_key(String strAccountNameOrId, String strBrainKey , AccountObject accountObject) {
-        if (accountObject == null) {
-            return ErrorCode.ERROR_NO_ACCOUNT_OBJECT;
+    private static MyWallet instance;
+
+    private MyWallet(){};
+
+    private Timer timer = new Timer();
+    private TimerTask timerTask = new TimerTask() {
+        @Override
+        public void run() {
+            lock();
         }
+    };
 
-        Map<PublicKey, PrivateKey> mapPublic2Private = new HashMap<>();
-        for (int i = 0; i < 10; ++i) {
-            BrainKey brainKey = new BrainKey(strBrainKey, i);
+    public static MyWallet import_brain_key(String strBrainKey ,List<PrivateKeyBackup> pks,List<String> as , String pwd) {
+        MyWallet myWallet = new MyWallet();
+
+        Map<String, PrivateKey> mapPublic2Private = new HashMap<>();
+        myWallet.pubs = new ArrayList<>();
+        for (int i = 0 ; i < pks.size() ; i++){
+            int sq = pks.get(i).brainkey_sequence;
+            BrainKey brainKey = new BrainKey(strBrainKey, sq);
             ECKey ecKey = brainKey.getPrivateKey();
             PrivateKey privateKey = new PrivateKey(ecKey.getPrivKeyBytes());
             PublicKey publicKeyType = privateKey.get_public_key();
-
-            if (accountObject.active.isExist(publicKeyType) == false &&
-                    accountObject.owner.isExist(publicKeyType) == false &&
-                    accountObject.options.getMemoKey().compare(publicKeyType) == false) {
-                continue;
-            }
-            mapPublic2Private.put(publicKeyType, privateKey);
+            mapPublic2Private.put(publicKeyType.getAddress(), privateKey);
+            myWallet.pubs.add(publicKeyType.getAddress());
         }
-
+        
         if (mapPublic2Private.isEmpty() == true) {
-            return ErrorCode.ERROR_IMPORT_NOT_MATCH_PRIVATE_KEY;
+            return null;
         }
-
-        mWalletObject.update_account(accountObject);
-
-        List<PublicKey> listPublicKeyType = new ArrayList<>();
-        listPublicKeyType.addAll(mapPublic2Private.keySet());
-
-        mWalletObject.extra_keys.put(accountObject.getObjectId(), listPublicKeyType);
-        mHashMapPub2Priv.putAll(mapPublic2Private);
-
-        encrypt_keys();
-
-        return 0;
+        myWallet.accounts.addAll(as);
+        myWallet.pub2pri.putAll(mapPublic2Private);
+        myWallet.encrypt_keys(pwd);
+        myWallet.timer.schedule(myWallet.timerTask,30 * 1000);
+        myWallet.save();
+        return myWallet;
     }
 
-    public int import_key(String account_name_or_id,
-                          String wif_key)  {
-        assert (is_locked() == false && is_new() == false);
 
+
+    public static MyWallet import_key(String account_name_or_id,
+                          String wif_key , String pwd)  {
+        MyWallet myWallet = new MyWallet();
         PrivateKey privateKeyType = new PrivateKey(wif_key);
 
         PublicKey publicKey = privateKeyType.get_public_key();
 
-        AccountObject accountObject = get_account(account_name_or_id);
-        if (accountObject == null) {
-            return ErrorCode.ERROR_NO_ACCOUNT_OBJECT;
-        }
-
-        /*List<account_object> listAccountObject = lookup_account_names(account_name_or_id);
-        // 进行publicKey的比对
-        if (listAccountObject.isEmpty()) {
-            return -1;
-        }
-
-        account_object accountObject = listAccountObject.get(0);*/
-        if (accountObject.active.isExist(publicKey) == false &&
-                accountObject.owner.isExist(publicKey) == false &&
-                accountObject.options.getMemoKey().compare(publicKey) == false) {
-            return -1;
-        }
-
-        mWalletObject.update_account(accountObject);
-
-        List<PublicKey> listPublicKeyType = new ArrayList<>();
-        listPublicKeyType.add(publicKey);
-
-        mWalletObject.extra_keys.put(accountObject.getObjectId(), listPublicKeyType);
-        mHashMapPub2Priv.put(publicKey, privateKeyType);
-
-        encrypt_keys();
-
-        // 保存至文件
-
-        return 0;
+        myWallet.pubs = new ArrayList<>();
+        myWallet.pubs.add(publicKey.getAddress());
+        myWallet.accounts.add(account_name_or_id);
+        myWallet.pub2pri.put(publicKey.getAddress(), privateKeyType);
+        myWallet.encrypt_keys(pwd);
+        myWallet.timer.schedule(myWallet.timerTask,30 * 1000);
+        myWallet.save();
+        return myWallet;
     }
 
-    private AccountObject get_account(String account_name_or_id) {
-        return null;
-    }
-
-    public int import_keys(String account_name_or_id,
+    public static MyWallet import_keys(String account_name_or_id,
                            String wif_key_1,
-                           String wif_key_2)  {
-        assert (is_locked() == false && is_new() == false);
+                           String wif_key_2,String pwd)  {
+        MyWallet myWallet = new MyWallet();
 
         PrivateKey privateKeyType1 = new PrivateKey(wif_key_1);
         PrivateKey privateKeyType2 = new PrivateKey(wif_key_2);
@@ -222,56 +125,23 @@ public class MyWallet {
         PublicKey publicKey2 = privateKeyType1.get_public_key();
 
 
-        AccountObject accountObject = get_account(account_name_or_id);
-        if (accountObject == null) {
-            return ErrorCode.ERROR_NO_ACCOUNT_OBJECT;
-        }
+        myWallet.pubs = new ArrayList<>();
+        myWallet.pubs.add(publicKey1.getAddress());
+        myWallet.pubs.add(publicKey2.getAddress());
+        myWallet.accounts.add(account_name_or_id);
+        myWallet.pub2pri.put(publicKey1.getAddress(), privateKeyType1);
+        myWallet.pub2pri.put(publicKey2.getAddress(), privateKeyType2);
 
-        /*List<account_object> listAccountObject = lookup_account_names(account_name_or_id);
-        // 进行publicKey的比对
-        if (listAccountObject.isEmpty()) {
-            return -1;
-        }
+        myWallet.encrypt_keys(pwd);
+        myWallet.timer.schedule(myWallet.timerTask,30 * 1000);
 
-        account_object accountObject = listAccountObject.get(0);*/
-        if (accountObject.active.isExist(publicKey1) == false &&
-                accountObject.owner.isExist(publicKey1) == false &&
-                accountObject.options.getMemoKey().compare(publicKey1) == false) {
-            return -1;
-        }
-
-        if (accountObject.active.isExist(publicKey2) == false &&
-                accountObject.owner.isExist(publicKey2) == false &&
-                accountObject.options.getMemoKey().compare(publicKey2) == false) {
-            return -1;
-        }
-
-
-
-        mWalletObject.update_account(accountObject);
-
-        List<PublicKey> listPublicKeyType = new ArrayList<>();
-        listPublicKeyType.add(publicKey1);
-        listPublicKeyType.add(publicKey2);
-
-        mWalletObject.extra_keys.put(accountObject.getObjectId(), listPublicKeyType);
-        mHashMapPub2Priv.put(publicKey1, privateKeyType1);
-        mHashMapPub2Priv.put(publicKey2, privateKeyType2);
-
-        encrypt_keys();
-
-        // 保存至文件
-        return 0;
+        myWallet.save();
+        return myWallet;
     }
 
-    public int import_account_password(String strAccountName,
+    public static MyWallet import_account_password(String strAccountName,
                                        String strPassword) {
-
-        // try the wif key at first time, then use password model. this is from the js code.
-        /*int nRet = import_key(strAccountName, strPassword);
-        if (nRet == 0) {
-            return nRet;
-        }*/
+        MyWallet myWallet = new MyWallet();
 
         PrivateKey privateActiveKey = PrivateKey.from_seed(strAccountName + "active" + strPassword);
         PrivateKey privateOwnerKey = PrivateKey.from_seed(strAccountName + "owner" + strPassword);
@@ -279,190 +149,122 @@ public class MyWallet {
         PublicKey publicActiveKeyType = privateActiveKey.get_public_key();
         PublicKey publicOwnerKeyType = privateOwnerKey.get_public_key();
 
-        AccountObject accountObject = get_account(strAccountName);
-        if (accountObject == null) {
-            return ErrorCode.ERROR_NO_ACCOUNT_OBJECT;
+        myWallet.pubs = new ArrayList<>();
+        myWallet.pubs.add(publicActiveKeyType.getAddress());
+        myWallet.pubs.add(publicOwnerKeyType.getAddress());
+
+        myWallet.pub2pri.put(publicActiveKeyType.getAddress(), privateActiveKey);
+        myWallet.pub2pri.put(publicOwnerKeyType.getAddress(), privateOwnerKey);
+        myWallet.accounts.add(strAccountName);
+        myWallet.encrypt_keys(strPassword);
+        myWallet.timer.schedule(myWallet.timerTask,30 * 1000);
+
+        myWallet.save();
+
+        return myWallet;
+    }
+
+    public static void setInstance(MyWallet instance) {
+        MyWallet.instance = instance;
+    }
+
+    public static MyWallet getInstance() {
+        return MyWallet.instance;
+    }
+
+    private void save() {
+        File dir = BtsApp.instance.getDataDir();
+        dir = new File(dir,"stor");
+        BufferedWriter bufferedWriter = null;
+        try {
+            FileWriter fileWriter = new FileWriter(dir);
+            bufferedWriter = new BufferedWriter(fileWriter);
+            String json = toJson();
+            bufferedWriter.write(json);
+        } catch (FileNotFoundException e) {
+            return ;
+        } catch (IOException e) {
+            return ;
+        }finally {
+            if(bufferedWriter != null){
+                try {
+                    bufferedWriter.close();
+                } catch (IOException e) {
+                }
+            }
         }
-
-        if (accountObject.active.isExist(publicActiveKeyType) == false &&
-                accountObject.owner.isExist(publicActiveKeyType) == false &&
-                accountObject.active.isExist(publicOwnerKeyType) == false &&
-                accountObject.owner.isExist(publicOwnerKeyType) == false){
-            return ErrorCode.ERROR_PASSWORD_INVALID;
-        }
-
-        List<PublicKey> listPublicKeyType = new ArrayList<>();
-        listPublicKeyType.add(publicActiveKeyType);
-        listPublicKeyType.add(publicOwnerKeyType);
-        mWalletObject.update_account(accountObject);
-        mWalletObject.extra_keys.put(accountObject.getObjectId(), listPublicKeyType);
-        mHashMapPub2Priv.put(publicActiveKeyType, privateActiveKey);
-        mHashMapPub2Priv.put(publicOwnerKeyType, privateOwnerKey);
-
-        encrypt_keys();
-
-        // 保存至文件
-
-        return 0;
     }
 
     public boolean is_locked() {
-        if (mWalletObject.cipher_keys != null && mWalletObject.cipher_keys.array().length > 0 &&
-                mCheckSum.equals(new sha512_object())) {
+        if (pub2pri.size() == 0) {
             return true;
         }
-
         return false;
     }
 
-    public int unlock(String strPassword) {
-        assert(strPassword.length() > 0);
-        sha512_object passwordHash = sha512_object.create_from_string(strPassword);
-        byte[] byteKey = new byte[32];
-        System.arraycopy(passwordHash.hash, 0, byteKey, 0, byteKey.length);
-        byte[] ivBytes = new byte[16];
-        System.arraycopy(passwordHash.hash, 32, ivBytes, 0, ivBytes.length);
-
-        ByteBuffer byteDecrypt = aes.decrypt(byteKey, ivBytes, mWalletObject.cipher_keys.array());
-        if (byteDecrypt == null || byteDecrypt.array().length == 0) {
-            return -1;
-        }
-
-        plain_keys dataResult = plain_keys.from_input_stream(
-                new ByteArrayInputStream(byteDecrypt.array())
-        );
-
-        for (Map.Entry<PublicKey, String> entry : dataResult.keys.entrySet()) {
-            PrivateKey privateKeyType = new PrivateKey(entry.getValue());
-            mHashMapPub2Priv.put(entry.getKey(), privateKeyType);
-        }
-
-        mCheckSum = passwordHash;
-        if (passwordHash.equals(dataResult.checksum)) {
-            return 0;
-        } else {
-            return -1;
+    public void unlock(String strPassword) {
+        Set<String> set = pub2epri.keySet();
+        for (String k :set){
+            byte[] p = strPassword.getBytes();
+            byte[] pk = Util.hexToBytes(pub2epri.get(k));
+            PrivateKey ppk = new PrivateKey(Util.decryptAES(pk,p));
+            pub2pri.put(k,ppk);
         }
     }
 
-    private void encrypt_keys() {
-        plain_keys data = new plain_keys();
-        data.keys = new HashMap<>();
-        for (Map.Entry<PublicKey, PrivateKey> entry : mHashMapPub2Priv.entrySet()) {
-            data.keys.put(entry.getKey(), entry.getValue().toString());
+    private void encrypt_keys(String pwd) {
+        Set<String> set = pub2pri.keySet();
+        for (String k :set){
+            byte[] p = pwd.getBytes();
+            byte[] pk = pub2pri.get(k).get_secret();
+            pub2epri.put(k,Util.bytesToHex(Util.encryptAES(pk,p)));
         }
-        data.checksum = mCheckSum;
-
-        datastream_size_encoder sizeEncoder = new datastream_size_encoder();
-        data.write_to_encoder(sizeEncoder);
-        datastream_encoder encoder = new datastream_encoder(sizeEncoder.getSize());
-        data.write_to_encoder(encoder);
-
-        byte[] byteKey = new byte[32];
-        System.arraycopy(mCheckSum.hash, 0, byteKey, 0, byteKey.length);
-        byte[] ivBytes = new byte[16];
-        System.arraycopy(mCheckSum.hash, 32, ivBytes, 0, ivBytes.length);
-
-        ByteBuffer byteResult = aes.encrypt(byteKey, ivBytes, encoder.getData());
-
-        mWalletObject.cipher_keys = byteResult;
-
-        return;
-
     }
 
     public int lock() {
-        encrypt_keys();
-
-        mCheckSum = new sha512_object();
-        mHashMapPub2Priv.clear();
-
+        pub2pri.clear();
         return 0;
     }
 
-    public signed_transaction sign_transaction(signed_transaction tx, WalletBackup walletBackup , dynamic_global_property_object dynamicGlobalPropertyObject , AccountObject a) {
-        // // TODO: 07/09/2017 这里的set应出问题
-        signed_transaction.required_authorities requiresAuthorities = tx.get_required_authorities();
+    private String toJson(){
+        Gson gson = new Gson();
+        JsonObject object = new JsonObject();
 
-        Set<String> req_active_approvals = new HashSet<>();
-        req_active_approvals.addAll(requiresAuthorities.active);
+        JsonElement jsonElement = gson.toJsonTree(pub2epri);
+        object.add("pub2epri",jsonElement);
+        jsonElement = gson.toJsonTree(pubs);
+        object.add("pubs",jsonElement);
+        jsonElement = gson.toJsonTree(accounts);
+        object.add("accounts",jsonElement);
+        return gson.toJson(object);
+    }
 
-        Set<String> req_owner_approvals = new HashSet<>();
-        req_owner_approvals.addAll(requiresAuthorities.owner);
+    private static MyWallet fromJson(String json){
+        Gson gson = new Gson();
+        return gson.fromJson(json,MyWallet.class);
+    }
 
-
-        for (Authority authorityObject : requiresAuthorities.other) {
-            for (String accountObjectId : authorityObject.getAccountAuths().keySet()) {
-                req_active_approvals.add(accountObjectId);
-            }
-        }
-
-        Set<String> accountObjectAll = new HashSet<>();
-        accountObjectAll.addAll(req_active_approvals);
-        accountObjectAll.addAll(req_owner_approvals);
-
-
-        List<String> listAccountObjectId = new ArrayList<>();
-        listAccountObjectId.addAll(accountObjectAll);
-
-//        List<AccountObject> listAccountObject = get_accounts(listAccountObjectId);
-        HashMap<String, AccountObject> hashMapIdToObject = new HashMap<>();
-//        for (AccountObject accountObject : listAccountObject) {
-            hashMapIdToObject.put(a.getObjectId(), a);
-//        }
-
-        HashSet<PublicKey> approving_key_set = new HashSet<>();
-        for (String accountObjectId : req_active_approvals) {
-            AccountObject accountObject = hashMapIdToObject.get(accountObjectId);
-            approving_key_set.addAll(accountObject.active.getKeyAuthList());
-        }
-
-        for (String accountObjectId : req_owner_approvals) {
-            AccountObject accountObject = hashMapIdToObject.get(accountObjectId);
-            approving_key_set.addAll(accountObject.owner.getKeyAuthList());
-        }
-
-        for (Authority authorityObject : requiresAuthorities.other) {
-            for (PublicKey publicKeyType : authorityObject.getKeyAuthList()) {
-                approving_key_set.add(publicKeyType);
-            }
-        }
-
-        // // TODO: 07/09/2017 被简化了
-        tx.set_reference_block(dynamicGlobalPropertyObject.head_block_id);
-
-        Date dateObject = dynamicGlobalPropertyObject.time;
-        Calendar calender = Calendar.getInstance();
-        calender.setTime(dateObject);
-        calender.add(Calendar.SECOND, 30);
-
-        dateObject = calender.getTime();
-
-        tx.set_expiration(dateObject);
-
-        for (PublicKey pulicKeyType : approving_key_set) {
-            PrivateKey privateKey = null;
-            PrivateKeyBackup[] pkbs = walletBackup.getPrivateKeys();
-            for (PrivateKeyBackup pbk:
-                    pkbs) {
-                if(pbk.pubkey.equals(pulicKeyType.getAddress())){
-//                    if(is_locked()){
-//                        unlock("woaimaomao535");
-//                    }
-                    privateKey = mHashMapPub2Priv.get(pulicKeyType);
+    public static MyWallet load(){
+        File dir = BtsApp.instance.getDataDir();
+        dir = new File(dir,"stor");
+        BufferedReader bufferedReader = null;
+        try {
+            FileReader fileReader = new FileReader(dir);
+            bufferedReader = new BufferedReader(fileReader);
+            String json = bufferedReader.readLine();
+            return fromJson(json);
+        } catch (FileNotFoundException e) {
+            return null;
+        } catch (IOException e) {
+            return null;
+        }finally {
+            if(bufferedReader != null){
+                try {
+                    bufferedReader.close();
+                } catch (IOException e) {
                 }
             }
-            if (privateKey != null) {
-                tx.sign(privateKey, sha256_object.create_from_string(config.sChniaId));
-            }
         }
-
-        return tx;
     }
 
-
-
-    private List<AccountObject> get_accounts(List<String> listAccountObjectId) {
-        return null;
-    }
 }

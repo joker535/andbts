@@ -2,7 +2,6 @@ package cn.guye.bitshares.models.backup;
 
 
 
-import java.io.UnsupportedEncodingException;
 import java.security.SecureRandom;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -82,6 +81,18 @@ public class Wallet {
         byte[] decryptedKey = getEncryptionKey(password);
         byte[] encryptedBrainKey = Util.hexToBytes(encrypted_brainkey);
         return new String(Util.decryptAES(encryptedBrainKey, decryptedKey));
+    }
+
+
+    /**
+     * Method that will return the decrypted version of the "encrypted_brainkey" field.
+     * @param password : Password used to encrypt the encryption key.
+     * @return: The brainkey in its plaintext version.
+     */
+    public byte[] decryptPK(String password, String epk){
+        byte[] decryptedKey = getEncryptionKey(password);
+        byte[] encryptedBrainKey = Util.hexToBytes(epk);
+        return Util.decryptAES(encryptedBrainKey, decryptedKey);
     }
 
     /**

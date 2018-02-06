@@ -9,7 +9,7 @@ import cn.guye.bitshares.models.GrapheneObject;
 public class dynamic_global_property_object extends GrapheneObject{
 
     public int     head_block_number = 0;
-    public ripemd160_object head_block_id;         //block_id_type     head_block_id;
+    public String head_block_id;         //block_id_type     head_block_id;
     public Date time;                  //time_point_sec    time;
     public String current_witness;       // witness_id_type   current_witness;
     public String    next_maintenance_time; // time_point_sec    next_maintenance_time;

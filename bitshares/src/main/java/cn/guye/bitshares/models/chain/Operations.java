@@ -126,20 +126,18 @@ public class Operations {
         public JsonElement serialize(Operations src, Type typeOfSrc, JsonSerializationContext context) {
             JsonArray array = new JsonArray();
             array.add(src.type);
+            JsonElement object = null;
             if(src instanceof TransferOperation){
-                JsonElement object = context.serialize(src,TransferOperation.class);
-                array.add(object);
+                object = context.serialize(src,TransferOperation.class);
             }else if(src instanceof LimitOrderCreateOperation){
-                JsonElement object = context.serialize(src,LimitOrderCreateOperation.class);
-                array.add(object);
+                object = context.serialize(src,LimitOrderCreateOperation.class);
             }else if(src instanceof LimitOrderCancelOperation){
-                JsonElement object = context.serialize(src,LimitOrderCancelOperation.class);
-                array.add(object);
+                object = context.serialize(src,LimitOrderCancelOperation.class);
             }else if(src instanceof CallOrderUpdateOperation){
-                JsonElement object = context.serialize(src,CallOrderUpdateOperation.class);
-                array.add(object);
+                object = context.serialize(src,CallOrderUpdateOperation.class);
             }
-
+            object.getAsJsonObject().remove("type");
+            array.add(object);
             return array;
         }
     }

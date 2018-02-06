@@ -47,6 +47,41 @@ public class sha256_object {
         return sha256Object;
     }
 
+    public static sha256_object wrap(byte[] strContent) {
+
+        sha256_object sha256Object = new sha256_object();
+        System.arraycopy(strContent, 0, sha256Object.hash, 0, strContent.length);
+
+        return sha256Object;
+    }
+
+    /**
+     * Calculates the SHA-256 hash of the given bytes.
+     *
+     * @param input the bytes to hash
+     * @return the hash (in big-endian order)
+     */
+    public static byte[] hash(byte[] input) {
+        return hash(input, 0, input.length);
+    }
+
+    /**
+     * Calculates the SHA-256 hash of the given byte range.
+     *
+     * @param input the array containing the bytes to hash
+     * @param offset the offset within the array of the bytes to hash
+     * @param length the number of bytes to hash
+     * @return the hash (in big-endian order)
+     */
+    public static byte[] hash(byte[] input, int offset, int length) {
+        SHA256Digest digest = new SHA256Digest();
+        digest.update(input, offset, length);
+        byte[] byteHash = new byte[32];
+        digest.doFinal(byteHash, 0);
+        return byteHash;
+    }
+
+
     public static class sha256_object_deserializer implements JsonDeserializer<sha256_object> {
 
         @Override

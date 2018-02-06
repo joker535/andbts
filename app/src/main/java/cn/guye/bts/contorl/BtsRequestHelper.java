@@ -1,5 +1,7 @@
 package cn.guye.bts.contorl;
 
+import com.google.gson.JsonObject;
+
 import java.io.Serializable;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -130,7 +132,7 @@ public class BtsRequestHelper {
         return new BtsRequest(api,CALL_GET_DYNAMIC_GLOBAL_PROPERTIES ,new Object[]{}, callBack);
     }
 
-    public static BtsRequest verify_authority(String api, signed_transaction tx, BtsRequest.CallBack  callBack) {
+    public static BtsRequest verify_authority(String api, JsonObject tx, BtsRequest.CallBack  callBack) {
         List<Object> listParams = new ArrayList<>();
         listParams.add(tx);
         return new BtsRequest(api,CALL_VALIDATE_TRANSACTION ,listParams.toArray(), callBack);
