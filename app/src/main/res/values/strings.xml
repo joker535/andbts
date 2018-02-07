@@ -12,9 +12,9 @@
     <string name="action_example">Example action</string>
 
     <string name="action_settings">Settings</string>
-    <string name="title_home">Home</string>
-    <string name="title_dashboard">Dashboard</string>
-    <string name="title_notifications">Notifications</string>
+    <string name="title_home">Wallet</string>
+    <string name="title_dashboard">Market</string>
+    <string name="title_notifications">Exchange</string>
     <string name="loading">loading</string>
     <string name="asset_cny" >CNY</string>
     <string name="main_activity_loading">loading</string>

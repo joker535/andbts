@@ -24,7 +24,17 @@
         <activity
             android:name=".ImportActivty"
             android:theme="@style/AppTheme"
-            android:label="@string/title_activity_main">
+            android:label="login">
+        </activity>
+        <activity
+            android:name=".SettingActivity"
+            android:theme="@style/AppTheme"
+            android:label="@string/action_settings">
+        </activity>
+        <activity
+            android:name=".AccountHistoryActivity"
+            android:theme="@style/AppTheme"
+            android:label="History">
         </activity>
     </application>
 

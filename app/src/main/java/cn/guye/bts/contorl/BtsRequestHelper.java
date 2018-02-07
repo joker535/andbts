@@ -9,13 +9,17 @@ import java.util.Date;
 import java.util.List;
 import java.util.TimeZone;
 
+import javax.annotation.Nullable;
+
 import cn.guye.bitshares.BtsApi;
+import cn.guye.bitshares.RPC;
 import cn.guye.bitshares.models.chain.Operations;
 import cn.guye.bitshares.models.chain.signed_transaction;
 import cn.guye.bts.WalletFragment;
 
 import static cn.guye.bitshares.RPC.CALL_DATABASE;
 import static cn.guye.bitshares.RPC.CALL_GET_ACCOUNT_BY_NAME;
+import static cn.guye.bitshares.RPC.CALL_GET_ACCOUNT_HISTORY;
 import static cn.guye.bitshares.RPC.CALL_GET_DYNAMIC_GLOBAL_PROPERTIES;
 import static cn.guye.bitshares.RPC.CALL_GET_FULL_ACCOUNTS;
 import static cn.guye.bitshares.RPC.CALL_GET_MARKET_HISTORY;
@@ -136,5 +140,22 @@ public class BtsRequestHelper {
         List<Object> listParams = new ArrayList<>();
         listParams.add(tx);
         return new BtsRequest(api,CALL_VALIDATE_TRANSACTION ,listParams.toArray(), callBack);
+    }
+
+    public static BtsRequest get_account_history(String id, @Nullable String start,@Nullable String end, int limit, BtsRequest.CallBack  callBack) {
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(id);
+        if(end != null){
+            listParams.add(end);
+        }else{
+            listParams.add("1.11.0");
+        }
+        listParams.add(limit);
+        if(start != null){
+            listParams.add(start);
+        }else{
+            listParams.add("1.11.0");
+        }
+        return new BtsRequest(RPC.CALL_HISTORY,CALL_GET_ACCOUNT_HISTORY ,listParams.toArray(), callBack);
     }
 }

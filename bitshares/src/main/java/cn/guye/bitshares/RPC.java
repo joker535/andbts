@@ -39,6 +39,7 @@ public class RPC {
     public static final String CALL_GET_FULL_ACCOUNTS = "get_full_accounts";
     public static final String CALL_VALIDATE_TRANSACTION = "validate_transaction";
     public static final String CALL_GET_CHAIN_ID = "get_chain_id";
+    public static final String CALL_GET_ACCOUNT_HISTORY = "get_account_history";
 
 
     public static long login(BtsApi api , String uid , String pwd){

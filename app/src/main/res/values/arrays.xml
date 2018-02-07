@@ -82,6 +82,9 @@
         <item>wss://altcap.io/ws</item>
         <item>wss://bitshares.crypto.fans/ws</item>
     </string-array>
-
+    <string-array name="main_menu">
+        <item>setting</item>
+        <item>more</item>
+    </string-array>
 
 </resources>

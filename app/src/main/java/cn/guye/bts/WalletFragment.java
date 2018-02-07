@@ -1,13 +1,18 @@
 package cn.guye.bts;
 
 
+import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -21,6 +26,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -34,6 +40,7 @@ import cn.guye.bitshares.models.AssetAmount;
 import cn.guye.bitshares.models.FullAccountObject;
 import cn.guye.bitshares.models.GrapheneObject;
 import cn.guye.bitshares.models.LimitOrder;
+import cn.guye.bitshares.models.OperationHistory;
 import cn.guye.bitshares.models.Price;
 import cn.guye.bitshares.models.Transaction;
 import cn.guye.bitshares.models.UserAccount;
@@ -61,29 +68,37 @@ import cn.guye.tools.jrpclib.JRpcError;
  * Created by nieyu2 on 18/1/15.
  */
 
-public class WalletFragment extends BaseFragment implements BtsRequest.CallBack {
+public class WalletFragment extends BaseFragment implements BtsRequest.CallBack, View.OnClickListener {
 
 
     private TextView textView;
+    private View update;
+    private View myhistory;
 
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
 
         EventBus.getDefault().register(this);
-        textView = new TextView(getActivity());
-        return textView;
+        View rootView = inflater.inflate(R.layout.fragment_wallet, container, false);
+        textView = rootView.findViewById(R.id.content);
+        update = rootView.findViewById(R.id.update);
+        myhistory = rootView.findViewById(R.id.myhistory);
+        update.setOnClickListener(this);
+        myhistory.setOnClickListener(this);
+
+        return rootView;
     }
 
     @Override
     public void onResult(BtsRequest request, JsonElement data) {
-        if(request.getMethod().equals(RPC.CALL_GET_ACCOUNT_BY_NAME)){
-            AccountObject my = BtsContorler.getInstance().parse(data,AccountObject.class);
+        if (request.getMethod().equals(RPC.CALL_GET_ACCOUNT_BY_NAME)) {
+            AccountObject my = BtsContorler.getInstance().parse(data, AccountObject.class);
 
-            BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE,new String[]{"guye535","zipian3"},false,this);
+            BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE, new String[]{"guye535", "zipian3"}, false, this);
             BtsContorler.getInstance().send(r);
 
-        }else if(request.getMethod().equals(RPC.CALL_GET_FULL_ACCOUNTS)){
+        } else if (request.getMethod().equals(RPC.CALL_GET_FULL_ACCOUNTS)) {
 //            JsonArray array = data.getAsJsonArray();
 //
 //            fullAccountObject = new FullAccountObject[array.size()];
@@ -136,14 +151,14 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
 //            BtsContorler.getInstance().send(r);
 
 
-        }else if(request.getMethod().equals(RPC.CALL_GET_REQUIRED_FEES)){
+        } else if (request.getMethod().equals(RPC.CALL_GET_REQUIRED_FEES)) {
 //            AssetAmount aa = BtsContorler.getInstance().parse(data.getAsJsonArray().get(0),AssetAmount.class);
 //            o.fee = aa;
 //            op.setFee(aa);
 //            BtsRequest r = BtsRequestHelper.get_dynamic_global_properties(RPC.CALL_DATABASE,this);
 //            BtsContorler.getInstance().send(r);
 
-        }else if(request.getMethod().equals(RPC.CALL_GET_DYNAMIC_GLOBAL_PROPERTIES)){
+        } else if (request.getMethod().equals(RPC.CALL_GET_DYNAMIC_GLOBAL_PROPERTIES)) {
 //            System.out.println(data.toString());
 //            dynamic_global_property_object d = BtsContorler.getInstance().parse(data,dynamic_global_property_object.class);
 //            MyWallet my = new MyWallet();
@@ -162,7 +177,7 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
 //            BtsRequest r = BtsRequestHelper.verify_authority(RPC.CALL_DATABASE,transaction.toJsonObject(),this);
 //            BtsContorler.getInstance().send(r);
 
-        }else{
+        } else {
             System.out.println(data.toString());
         }
     }
@@ -173,33 +188,31 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
     }
 
 
-
-
     @Subscribe
-    public void onBtsEvent(MyWallet e){
+    public void onBtsEvent(MyWallet e) {
         final StringBuilder sb = new StringBuilder();
         List<FullAccountObject> as = e.getAccountObject();
-        for (int i  = 0 ; i < as.size() ; i++){
+        for (int i = 0; i < as.size(); i++) {
             sb.append("======================\n");
             sb.append(as.get(i).account.name).append("\n");
             for (FullAccountObject.Balances b :
                     as.get(i).balances) {
-                Asset base  = (Asset) BtsContorler.getInstance().getDataSync(b.asset_type);
-                String bName = base== null?b.asset_type:base.getSymbol();
-                String bl = base==null?b.balance.toString():Price.get_asset_amount(b.balance,base).toString();
+                Asset base = (Asset) BtsContorler.getInstance().getDataSync(b.asset_type);
+                String bName = base == null ? b.asset_type : base.getSymbol();
+                String bl = base == null ? b.balance.toString() : Price.get_asset_amount(b.balance, base).toString();
                 sb.append(bName).append(" : ").append(bl).append("\n");
             }
 
             sb.append("order:\n");
-            for (LimitOrder lo:
+            for (LimitOrder lo :
                     as.get(i).limit_orders) {
                 Price p = lo.getSellPrice();
-                Asset base  = (Asset) BtsContorler.getInstance().getDataSync(p.base.getAsset().getObjectId());
-                Asset quote  = (Asset) BtsContorler.getInstance().getDataSync(p.quote.getAsset().getObjectId());
-                String bName = base== null?p.base.getAsset().getObjectId():base.getSymbol();
-                String qName = quote== null?p.quote.getAsset().getObjectId():quote.getSymbol();
-                String amount = base==null?"-":Price.get_asset_amount(p.base.getAmount(),base).toString();
-                sb.append(bName).append("/").append(qName).append(" : ").append(lo.getSellPrice().base2Quote(base,quote)).append(" for sell:").append(amount).append("\n");
+                Asset base = (Asset) BtsContorler.getInstance().getDataSync(p.base.getAsset().getObjectId());
+                Asset quote = (Asset) BtsContorler.getInstance().getDataSync(p.quote.getAsset().getObjectId());
+                String bName = base == null ? p.base.getAsset().getObjectId() : base.getSymbol();
+                String qName = quote == null ? p.quote.getAsset().getObjectId() : quote.getSymbol();
+                String amount = base == null ? "-" : Price.get_asset_amount(p.base.getAmount(), base).toString();
+                sb.append(bName).append("/").append(qName).append(" : ").append(lo.getSellPrice().base2Quote(base, quote)).append(" for sell:").append(amount).append("\n");
             }
         }
 
@@ -209,5 +222,81 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack 
                 textView.setText(sb.toString());
             }
         });
+    }
+
+    @Override
+    public void onClick(View v) {
+        if (v == update) {
+            List<String> account = MyWallet.getInstance().getAccounts();
+            BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE, account.toArray(new String[]{}), false, new BtsRequest.CallBack() {
+                @Override
+                public void onResult(BtsRequest request, JsonElement data) {
+                    JsonArray array = data.getAsJsonArray();
+
+                    List<FullAccountObject> fullAccountObject = new ArrayList<>();
+                    final StringBuilder sb = new StringBuilder();
+                    for (int i = 0; i < array.size(); i++) {
+                        FullAccountObject f = BtsContorler.getInstance().parse(array.get(i).getAsJsonArray().get(1), FullAccountObject.class);
+                        fullAccountObject.add(f);
+                    }
+                    MyWallet.getInstance().setAccountObject(fullAccountObject);
+                    onBtsEvent(MyWallet.getInstance());
+
+                }
+
+                @Override
+                public void onError(JRpcError error) {
+
+                }
+            });
+            BtsContorler.getInstance().send(r);
+        }else if(v == myhistory){
+            Intent i = new Intent(getActivity(),AccountHistoryActivity.class);
+            i.putExtra("id",MyWallet.getInstance().getAccountObject().get(0).account.getObjectId());
+            startActivity(i);
+
+        }
+    }
+
+    private class MyAdapter extends BaseAdapter {
+
+        private List<FullAccountObject> list = Collections.EMPTY_LIST;
+
+        @Override
+        public int getCount() {
+            return list.size();
+        }
+
+        @Override
+        public Object getItem(int position) {
+            return list.get(position);
+        }
+
+        @Override
+        public long getItemId(int position) {
+            return 0;
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+
+            return null;
+        }
+    }
+
+    private class AccountView extends LinearLayout{
+
+        private FullAccountObject fullAccountObject;
+
+
+
+        public AccountView(Context context) {
+            super(context);
+            init();
+        }
+
+        private void init() {
+
+        }
     }
 }
