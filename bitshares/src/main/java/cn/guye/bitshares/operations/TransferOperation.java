@@ -169,7 +169,6 @@ public class TransferOperation extends BaseOperation {
 
         @Override
         public TransferOperation deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-            System.out.println("Deserialized bitch start. Msg: "+ json.getAsString());
             if(json.isJsonArray()){
                 // This block is used just to check if we are in the first step of the deserialization
                 // when we are dealing with an array.
@@ -196,7 +195,6 @@ public class TransferOperation extends BaseOperation {
                 TransferOperation transfer = new TransferOperation(from, to, amount, fee);
 
                 // Deserializing Memo if it exists
-                System.out.println("Deserialized bitch. Msg: "+ jsonObject.getAsString());
                 if(jsonObject.get(KEY_MEMO) != null){
                     JsonObject memoObj = jsonObject.get(KEY_MEMO).getAsJsonObject();
                     try{

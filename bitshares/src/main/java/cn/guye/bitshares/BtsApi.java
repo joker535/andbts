@@ -19,8 +19,11 @@ import cn.guye.bitshares.models.AssetAmount;
 import cn.guye.bitshares.models.Authority;
 import cn.guye.bitshares.models.LimitOrder;
 import cn.guye.bitshares.models.OperationHistory;
-import cn.guye.bitshares.models.chain.Operations;
 import cn.guye.bitshares.models.chain.config;
+import cn.guye.bitshares.operations.LimitOrderCancelOperation;
+import cn.guye.bitshares.operations.LimitOrderCreateOperation;
+import cn.guye.bitshares.operations.LimitOrderFullOperation;
+import cn.guye.bitshares.operations.TransferOperation;
 import cn.guye.bitshares.utils.unsigned_number_serializer;
 import cn.guye.bitshares.wallet.compact_signature;
 import cn.guye.bitshares.wallet.types;
@@ -61,8 +64,10 @@ public class BtsApi {
                 .registerTypeAdapter(AccountOptions.class,new AccountOptions.AccountOptionsDeserializer())
                 .registerTypeAdapter(LimitOrder.class,new LimitOrder.LimitOrderDeserializer())
                 .registerTypeAdapter(AssetAmount.class, new AssetAmount.AssetAmountSerializer())
-                .registerTypeAdapter(Operations.class,new Operations.OperationDeserializer())
-                .registerTypeAdapter(Operations.class,new Operations.OperationSerializer())
+                .registerTypeAdapter(TransferOperation.class,new TransferOperation.TransferDeserializer())
+                .registerTypeAdapter(LimitOrderCreateOperation.class,new LimitOrderCreateOperation.LimitOrderCreateDeserializer())
+                .registerTypeAdapter(LimitOrderCancelOperation.class,new LimitOrderCancelOperation.LimitOrderCancelDeserializer())
+                .registerTypeAdapter(LimitOrderFullOperation.class,new LimitOrderFullOperation.LimitOrderFullDeserializer())
                 .registerTypeAdapter(ripemd160_object.class, new ripemd160_object.ripemd160_object_deserializer())
                 .registerTypeAdapter(compact_signature.class, new compact_signature.compact_signature_serializer())
                 .registerTypeAdapter(UnsignedInteger.class, new unsigned_number_serializer.UnsigendIntegerSerializer())

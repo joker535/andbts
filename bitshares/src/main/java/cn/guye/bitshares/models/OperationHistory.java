@@ -1,5 +1,6 @@
 package cn.guye.bitshares.models;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
 import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
@@ -7,7 +8,12 @@ import com.google.gson.JsonParseException;
 
 import java.lang.reflect.Type;
 
-import cn.guye.bitshares.models.chain.Operations;
+import cn.guye.bitshares.operations.BaseOperation;
+import cn.guye.bitshares.operations.LimitOrderCancelOperation;
+import cn.guye.bitshares.operations.LimitOrderCreateOperation;
+import cn.guye.bitshares.operations.LimitOrderFullOperation;
+import cn.guye.bitshares.operations.OperationType;
+import cn.guye.bitshares.operations.TransferOperation;
 
 /**
  * Created by nieyu2 on 18/1/18.
@@ -47,12 +53,12 @@ import cn.guye.bitshares.models.chain.Operations;
 //         },
 
 
-public class OperationHistory extends GrapheneObject{
+public class OperationHistory extends GrapheneObject {
     public long block_num;
     public int trx_in_block;
     public int op_in_trx;
     public long virtual_op;
-    public Operations op;
+    public BaseOperation op;
 
 
     public OperationHistory(String id) {
@@ -69,8 +75,29 @@ public class OperationHistory extends GrapheneObject{
             operationHistory.trx_in_block = json.getAsJsonObject().get("trx_in_block").getAsInt();
             operationHistory.op_in_trx = json.getAsJsonObject().get("op_in_trx").getAsInt();
             operationHistory.virtual_op = json.getAsJsonObject().get("virtual_op").getAsLong();
-            operationHistory.op = new Operations.OperationDeserializer().deserialize(json.getAsJsonObject().get("op"),Operations.class,context);
 
+            int type;
+            JsonArray jsonArray = json.getAsJsonObject().get("op").getAsJsonArray();
+
+            type = jsonArray.get(0).getAsInt();
+            BaseOperation operations = null;
+
+
+            if (type == OperationType.TRANSFER_OPERATION.ordinal()) {
+                operations = context.deserialize(jsonArray.get(1), TransferOperation.class);
+            } else if (type == OperationType.LIMIT_ORDER_CREATE_OPERATION.ordinal()) {
+                operations = context.deserialize(jsonArray.get(1), LimitOrderCreateOperation.class);
+            } else if (type == OperationType.LIMIT_ORDER_CANCEL_OPERATION.ordinal()) {
+                operations = context.deserialize(jsonArray.get(1), LimitOrderCancelOperation.class);
+            } else if (type == OperationType.FILL_ORDER_OPERATION.ordinal()) {
+                operations = context.deserialize(jsonArray.get(1), LimitOrderFullOperation.class);
+            }
+//            else if (type == OperationType.CALL_ORDER_UPDATE_OPERATION.ordinal()) {
+//                operations = context.deserialize(jsonArray.get(1), Operations.LimitOrderCreateOperation.class);
+//                operations.type = type;
+//            }
+
+            operationHistory.op = operations;
             return operationHistory;
         }
     }

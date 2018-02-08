@@ -24,7 +24,6 @@ import cn.guye.bitshares.models.GrapheneObject;
 import cn.guye.bitshares.models.LimitOrder;
 import cn.guye.bitshares.models.ObjectType;
 import cn.guye.bitshares.models.OperationHistory;
-import cn.guye.bitshares.models.chain.Operations;
 import cn.guye.bts.R;
 import cn.guye.bts.app.BtsApp;
 import cn.guye.bts.data.DataCenter;

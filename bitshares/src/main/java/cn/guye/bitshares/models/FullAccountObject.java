@@ -9,7 +9,6 @@ import com.google.gson.JsonParseException;
 import java.lang.reflect.Type;
 import java.math.BigDecimal;
 
-import cn.guye.bitshares.models.chain.Operations;
 import cn.guye.bitshares.wallet.AccountObject;
 
 /**

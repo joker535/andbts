@@ -11,6 +11,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -49,9 +50,7 @@ import cn.guye.bitshares.models.backup.LinkedAccount;
 import cn.guye.bitshares.models.backup.Wallet;
 import cn.guye.bitshares.models.backup.WalletBackup;
 import cn.guye.bitshares.models.chain.BlockData;
-import cn.guye.bitshares.models.chain.Operations;
 import cn.guye.bitshares.models.chain.dynamic_global_property_object;
-import cn.guye.bitshares.models.chain.signed_transaction;
 
 import cn.guye.bitshares.operations.BaseOperation;
 import cn.guye.bitshares.operations.LimitOrderCreateOperation;
@@ -71,9 +70,10 @@ import cn.guye.tools.jrpclib.JRpcError;
 public class WalletFragment extends BaseFragment implements BtsRequest.CallBack, View.OnClickListener {
 
 
-    private TextView textView;
+    private ListView listview;
     private View update;
     private View myhistory;
+    private MyAdapter adapter;
 
     @Nullable
     @Override
@@ -81,7 +81,9 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
 
         EventBus.getDefault().register(this);
         View rootView = inflater.inflate(R.layout.fragment_wallet, container, false);
-        textView = rootView.findViewById(R.id.content);
+        listview = rootView.findViewById(R.id.list_view);
+        adapter = new MyAdapter();
+        listview.setAdapter(adapter);
         update = rootView.findViewById(R.id.update);
         myhistory = rootView.findViewById(R.id.myhistory);
         update.setOnClickListener(this);
@@ -190,36 +192,37 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
 
     @Subscribe
     public void onBtsEvent(MyWallet e) {
-        final StringBuilder sb = new StringBuilder();
+//        final StringBuilder sb = new StringBuilder();
         List<FullAccountObject> as = e.getAccountObject();
-        for (int i = 0; i < as.size(); i++) {
-            sb.append("======================\n");
-            sb.append(as.get(i).account.name).append("\n");
-            for (FullAccountObject.Balances b :
-                    as.get(i).balances) {
-                Asset base = (Asset) BtsContorler.getInstance().getDataSync(b.asset_type);
-                String bName = base == null ? b.asset_type : base.getSymbol();
-                String bl = base == null ? b.balance.toString() : Price.get_asset_amount(b.balance, base).toString();
-                sb.append(bName).append(" : ").append(bl).append("\n");
-            }
-
-            sb.append("order:\n");
-            for (LimitOrder lo :
-                    as.get(i).limit_orders) {
-                Price p = lo.getSellPrice();
-                Asset base = (Asset) BtsContorler.getInstance().getDataSync(p.base.getAsset().getObjectId());
-                Asset quote = (Asset) BtsContorler.getInstance().getDataSync(p.quote.getAsset().getObjectId());
-                String bName = base == null ? p.base.getAsset().getObjectId() : base.getSymbol();
-                String qName = quote == null ? p.quote.getAsset().getObjectId() : quote.getSymbol();
-                String amount = base == null ? "-" : Price.get_asset_amount(p.base.getAmount(), base).toString();
-                sb.append(bName).append("/").append(qName).append(" : ").append(lo.getSellPrice().base2Quote(base, quote)).append(" for sell:").append(amount).append("\n");
-            }
-        }
+//        for (int i = 0; i < as.size(); i++) {
+//            sb.append("======================\n");
+//            sb.append(as.get(i).account.name).append("\n");
+//            for (FullAccountObject.Balances b :
+//                    as.get(i).balances) {
+//                Asset base = (Asset) BtsContorler.getInstance().getDataSync(b.asset_type);
+//                String bName = base == null ? b.asset_type : base.getSymbol();
+//                String bl = base == null ? b.balance.toString() : Price.get_asset_amount(b.balance, base).toString();
+//                sb.append(bName).append(" : ").append(bl).append("\n");
+//            }
+//
+//            sb.append("order:\n");
+//            for (LimitOrder lo :
+//                    as.get(i).limit_orders) {
+//                Price p = lo.getSellPrice();
+//                Asset base = (Asset) BtsContorler.getInstance().getDataSync(p.base.getAsset().getObjectId());
+//                Asset quote = (Asset) BtsContorler.getInstance().getDataSync(p.quote.getAsset().getObjectId());
+//                String bName = base == null ? p.base.getAsset().getObjectId() : base.getSymbol();
+//                String qName = quote == null ? p.quote.getAsset().getObjectId() : quote.getSymbol();
+//                String amount = base == null ? "-" : Price.get_asset_amount(p.base.getAmount(), base).toString();
+//                sb.append(bName).append("/").append(qName).append(" : ").append(lo.getSellPrice().base2Quote(base, quote)).append(" for sell:").append(amount).append("\n");
+//            }
+//        }
 
         getActivity().runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                textView.setText(sb.toString());
+                adapter.list = as;
+                adapter.notifyDataSetChanged();
             }
         });
     }
@@ -250,9 +253,10 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
                 }
             });
             BtsContorler.getInstance().send(r);
-        }else if(v == myhistory){
-            Intent i = new Intent(getActivity(),AccountHistoryActivity.class);
-            i.putExtra("id",MyWallet.getInstance().getAccountObject().get(0).account.getObjectId());
+        } else if (v == myhistory) {
+            Intent i = new Intent(getActivity(), AccountHistoryActivity.class);
+            i.putExtra("id", MyWallet.getInstance().getAccountObject().get(0).account.getObjectId());
+//            i.putExtra("id","1.2.495937");
             startActivity(i);
 
         }
@@ -279,16 +283,20 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
+            AccountView accountView = new AccountView(getActivity());
+            accountView.update(list.get(position));
 
-            return null;
+            return accountView;
         }
     }
 
-    private class AccountView extends LinearLayout{
+    private class AccountView extends LinearLayout {
 
         private FullAccountObject fullAccountObject;
 
-
+        private TextView name;
+        private TextView balances;
+        private TextView[] orders;
 
         public AccountView(Context context) {
             super(context);
@@ -296,7 +304,45 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
         }
 
         private void init() {
+            setOrientation(LinearLayout.VERTICAL);
 
+        }
+
+        private void update(FullAccountObject a) {
+            removeAllViews();
+            if (name == null) {
+                name = new TextView(getActivity());
+                name.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                balances = new TextView(getActivity());
+                balances.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            }
+            addView(name);
+            addView(balances);
+            name.setText("$ " + a.account.name + "\nbalances:");
+            StringBuilder sb = new StringBuilder();
+            for (FullAccountObject.Balances b :
+                    a.balances) {
+                Asset base = (Asset) BtsContorler.getInstance().getDataSync(b.asset_type);
+                String bName = base == null ? b.asset_type : base.getSymbol();
+                String bl = base == null ? b.balance.toString() : Price.get_asset_amount(b.balance, base).toString();
+
+                sb.append(bName).append(" : ").append(bl).append("\n");
+            }
+            balances.setText(sb.toString() + "\norders:");
+            orders = new TextView[a.limit_orders.length];
+            for (int i = 0; i < orders.length; i++) {
+                orders[i] = new TextView(getActivity());
+                Price p = a.limit_orders[i].getSellPrice();
+                Asset base = (Asset) BtsContorler.getInstance().getDataSync(p.base.getAsset().getObjectId());
+                Asset quote = (Asset) BtsContorler.getInstance().getDataSync(p.quote.getAsset().getObjectId());
+                String bName = base == null ? p.base.getAsset().getObjectId() : base.getSymbol();
+                String qName = quote == null ? p.quote.getAsset().getObjectId() : quote.getSymbol();
+                String amount = base == null ? "-" : Price.get_asset_amount(p.base.getAmount(), base).toString();
+                sb = new StringBuilder();
+                sb.append(bName).append("/").append(qName).append(" : ").append(a.limit_orders[i].getSellPrice().base2Quote(base, quote)).append(" for sell:").append(amount).append("\n");
+                orders[i].setText(sb.toString());
+                addView(orders[i]);
+            }
         }
     }
 }

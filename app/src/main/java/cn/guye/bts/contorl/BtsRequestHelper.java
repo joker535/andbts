@@ -13,8 +13,7 @@ import javax.annotation.Nullable;
 
 import cn.guye.bitshares.BtsApi;
 import cn.guye.bitshares.RPC;
-import cn.guye.bitshares.models.chain.Operations;
-import cn.guye.bitshares.models.chain.signed_transaction;
+import cn.guye.bitshares.operations.BaseOperation;
 import cn.guye.bts.WalletFragment;
 
 import static cn.guye.bitshares.RPC.CALL_DATABASE;
@@ -125,7 +124,7 @@ public class BtsRequestHelper {
         return new BtsRequest(api,CALL_GET_FULL_ACCOUNTS ,listParams.toArray(), callBack);
     }
 
-    public static BtsRequest get_required_fees(String api, Operations[] o, String asset, BtsRequest.CallBack  callBack) {
+    public static BtsRequest get_required_fees(String api, BaseOperation[] o, String asset, BtsRequest.CallBack  callBack) {
         List<Object> listParams = new ArrayList<>();
         listParams.add(o);
         listParams.add(asset);

@@ -20,7 +20,7 @@ import cn.guye.bitshares.models.Asset;
 import cn.guye.bitshares.models.AssetAmount;
 import cn.guye.bitshares.models.OperationHistory;
 import cn.guye.bitshares.models.Price;
-import cn.guye.bitshares.models.chain.Operations;
+import cn.guye.bitshares.operations.LimitOrderFullOperation;
 import cn.guye.bitshares.operations.OperationType;
 import cn.guye.bts.contorl.BtsContorler;
 import cn.guye.bts.contorl.BtsRequest;
@@ -60,7 +60,7 @@ public class AccountHistoryActivity extends AppCompatActivity implements BtsRequ
         JsonArray array = data.getAsJsonArray();
         for (JsonElement j : array){
             OperationHistory op = BtsContorler.getInstance().parse(j,OperationHistory.class);
-            if(op.op.type == OperationType.FILL_ORDER_OPERATION.ordinal()){
+            if(op.op instanceof LimitOrderFullOperation){
                 list.add(op);
             }
         }
@@ -102,17 +102,17 @@ public class AccountHistoryActivity extends AppCompatActivity implements BtsRequ
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             TextView textView = new TextView(AccountHistoryActivity.this);
-            Operations.FillOrderOperation fo = (Operations.FillOrderOperation) histories.get(position).op;
+            LimitOrderFullOperation fo = (LimitOrderFullOperation) histories.get(position).op;
 
-            Asset base = (Asset) BtsContorler.getInstance().getDataSync(fo.pays.getAsset().getObjectId());
-            Asset quote = (Asset) BtsContorler.getInstance().getDataSync(fo.receives.getAsset().getObjectId());
-            String bName = base == null ? fo.pays.getAsset().getObjectId() : base.getSymbol();
-            String qName = quote == null ? fo.receives.getAsset().getObjectId() : quote.getSymbol();
-            String amount = base == null ? "-" : Price.get_asset_amount(fo.pays.getAmount(), base).toString();
+            Asset base = (Asset) BtsContorler.getInstance().getDataSync(fo.getPays().getAsset().getObjectId());
+            Asset quote = (Asset) BtsContorler.getInstance().getDataSync(fo.getReceives().getAsset().getObjectId());
+            String bName = base == null ? fo.getPays().getAsset().getObjectId() : base.getSymbol();
+            String qName = quote == null ? fo.getReceives().getAsset().getObjectId() : quote.getSymbol();
+            String amount = base == null ? "-" : Price.get_asset_amount(fo.getPays().getAmount(), base).toString();
             StringBuilder sb = new StringBuilder();
             Price p = new Price();
-            p.base = fo.pays;
-            p.quote = fo.receives;
+            p.base = fo.getPays();
+            p.quote = fo.getReceives();
             sb.append(bName).append("/").append(qName).append(" : ").append(p.base2Quote(base, quote)).append(" for sell:").append(amount).append(bName).append("\n");
             textView.setText(sb.toString());
             return textView;
