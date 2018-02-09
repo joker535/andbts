@@ -267,4 +267,39 @@ public class MyWallet {
         }
     }
 
+    public boolean hasAccount(String seller) {
+
+        for (FullAccountObject id:
+                accountObject) {
+            if(id.account.getObjectId().equals(seller)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public ECKey getKey(String seller) {
+        FullAccountObject object = null;
+        for (FullAccountObject id:
+                accountObject) {
+            if(id.account.getObjectId().equals(seller)){
+               object = id;
+            }
+        }
+
+        if(object != null){
+            List<PublicKey> pusk = object.account.active.getKeyAuthList();
+
+            String address = pusk.get(0).getAddress();//TODO only first key
+
+            PrivateKey p = pub2pri.get(address);
+            if(p != null){
+                return p.getEC();
+            }else{
+                return null;
+            }
+        }else{
+            return null;
+        }
+    }
 }

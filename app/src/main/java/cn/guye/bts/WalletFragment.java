@@ -1,7 +1,9 @@
 package cn.guye.bts;
 
 
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Environment;
@@ -10,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseAdapter;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -53,6 +56,7 @@ import cn.guye.bitshares.models.chain.BlockData;
 import cn.guye.bitshares.models.chain.dynamic_global_property_object;
 
 import cn.guye.bitshares.operations.BaseOperation;
+import cn.guye.bitshares.operations.LimitOrderCancelOperation;
 import cn.guye.bitshares.operations.LimitOrderCreateOperation;
 import cn.guye.bts.contorl.BtsContorler;
 import cn.guye.bts.contorl.BtsRequest;
@@ -259,8 +263,120 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
 //            i.putExtra("id","1.2.495937");
             startActivity(i);
 
+        }else{
+            if(v instanceof TextView){
+                if(v.getTag() instanceof LimitOrder){
+                    LimitOrder l = (LimitOrder) v.getTag();
+
+                    showNormalDialog(l);
+                }
+            }
         }
     }
+
+    private void showNormalDialog(final LimitOrder l){
+        /* @setIcon 设置对话框图标
+         * @setTitle 设置对话框标题
+         * @setMessage 设置对话框消息提示
+         * setXXX方法返回Dialog对象，因此可以链式设置属性
+         */
+        final AlertDialog.Builder normalDialog =
+                new AlertDialog.Builder(getActivity());
+        normalDialog.setTitle("cancel order?");
+        normalDialog.setMessage("?");
+        normalDialog.setPositiveButton("ok",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        LimitOrderCancelOperation lop = new LimitOrderCancelOperation(l,new UserAccount(l.getSeller()));
+
+                        BtsRequest r = BtsRequestHelper.get_dynamic_global_properties(RPC.CALL_DATABASE, new BtsRequest.CallBack() {
+                            public long ee;
+
+                            @Override
+                            public void onResult(BtsRequest request, JsonElement data) {
+                                dynamic_global_property_object d = BtsContorler.getInstance().parse(data,dynamic_global_property_object.class);
+                                MyWallet myWallet = MyWallet.getInstance();
+                                ee = (int)((System.currentTimeMillis() + 24 * 60 *60 * 1000)/1000);
+                                List<BaseOperation> ll = new ArrayList<>();
+                                ll.add(lop);
+
+                                boolean hasKey = myWallet.hasAccount(l.getSeller());
+                                if(myWallet.is_locked()){
+                                    getActivity().runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            final EditText editText = new EditText(getActivity());
+                                            AlertDialog.Builder inputDialog =
+                                                    new AlertDialog.Builder(getActivity());
+                                            inputDialog.setTitle("我是一个输入Dialog").setView(editText);
+                                            inputDialog.setPositiveButton("确定",
+                                                    new DialogInterface.OnClickListener() {
+                                                        @Override
+                                                        public void onClick(DialogInterface dialog, int which) {
+                                                            String pwd = editText.getText().toString();
+                                                            myWallet.unlock(pwd);
+                                                            Transaction transaction = new Transaction(myWallet.getKey(l.getSeller()),new BlockData(d.head_block_number,d.head_block_id,ee),ll);
+                                                            List<AssetAmount> fee = new ArrayList<>();
+                                                            fee.add(new AssetAmount(new BigDecimal(9),new GrapheneObject("1.3.0")));
+                                                            transaction.setFees(fee);
+
+                                                            BtsRequest r = BtsRequestHelper.verify_authority(RPC.CALL_DATABASE, transaction.toJsonObject(), new BtsRequest.CallBack() {
+                                                                @Override
+                                                                public void onResult(BtsRequest request, JsonElement data) {
+
+                                                                }
+
+                                                                @Override
+                                                                public void onError(JRpcError error) {
+
+                                                                }
+                                                            });
+                                                            BtsContorler.getInstance().send(r);
+                                                        }
+                                                    }).show();
+                                        }
+                                    });
+                                }else{
+                                    Transaction transaction = new Transaction(myWallet.getKey(l.getSeller()),new BlockData(d.head_block_number,d.head_block_id,ee),ll);
+                                    List<AssetAmount> fee = new ArrayList<>();
+                                    fee.add(new AssetAmount(new BigDecimal(9),new GrapheneObject("1.3.0")));
+                                    transaction.setFees(fee);
+
+                                    BtsRequest r = BtsRequestHelper.verify_authority(RPC.CALL_DATABASE, transaction.toJsonObject(), new BtsRequest.CallBack() {
+                                        @Override
+                                        public void onResult(BtsRequest request, JsonElement data) {
+                                            Toast.makeText(getActivity(), data.toString(), Toast.LENGTH_SHORT).show();
+                                        }
+
+                                        @Override
+                                        public void onError(JRpcError error) {
+
+                                        }
+                                    });
+                                    BtsContorler.getInstance().send(r);
+                                }
+                            }
+
+                            @Override
+                            public void onError(JRpcError error) {
+
+                            }
+                        });
+                        BtsContorler.getInstance().send(r);
+                    }
+                });
+        normalDialog.setNegativeButton("cancel",
+                new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+
+                    }
+                });
+        // 显示
+        normalDialog.show();
+    }
+
 
     private class MyAdapter extends BaseAdapter {
 
@@ -341,6 +457,8 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
                 sb = new StringBuilder();
                 sb.append(bName).append("/").append(qName).append(" : ").append(a.limit_orders[i].getSellPrice().base2Quote(base, quote)).append(" for sell:").append(amount).append("\n");
                 orders[i].setText(sb.toString());
+                orders[i].setTag(a.limit_orders[i]);
+                orders[i].setOnClickListener(WalletFragment.this);
                 addView(orders[i]);
             }
         }

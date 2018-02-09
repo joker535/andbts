@@ -16,6 +16,7 @@ import cn.guye.bitshares.RPC;
 import cn.guye.bitshares.operations.BaseOperation;
 import cn.guye.bts.WalletFragment;
 
+import static cn.guye.bitshares.RPC.CALL_BROADCAST_TRANSACTION;
 import static cn.guye.bitshares.RPC.CALL_DATABASE;
 import static cn.guye.bitshares.RPC.CALL_GET_ACCOUNT_BY_NAME;
 import static cn.guye.bitshares.RPC.CALL_GET_ACCOUNT_HISTORY;
@@ -139,6 +140,13 @@ public class BtsRequestHelper {
         List<Object> listParams = new ArrayList<>();
         listParams.add(tx);
         return new BtsRequest(api,CALL_VALIDATE_TRANSACTION ,listParams.toArray(), callBack);
+    }
+
+    public static BtsRequest broadcast_transaction_with_callback( JsonObject tx, long cb , BtsRequest.CallBack  callBack) {
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(cb);
+        listParams.add(tx);
+        return new BtsRequest(CALL_NETWORK_BROADCAST,CALL_BROADCAST_TRANSACTION ,listParams.toArray(), callBack);
     }
 
     public static BtsRequest get_account_history(String id, @Nullable String start,@Nullable String end, int limit, BtsRequest.CallBack  callBack) {
