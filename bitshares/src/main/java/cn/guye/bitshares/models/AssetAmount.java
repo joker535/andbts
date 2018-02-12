@@ -43,6 +43,16 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
         this.asset = asset;
     }
 
+    public AssetAmount(BigDecimal amount, Asset asset,boolean isFloat){
+        if(!isFloat){
+            this.amount = amount;
+            this.asset = asset;
+        }else{
+            this.amount = toBalance(amount,asset);
+            this.asset = asset;
+        }
+    }
+
     /**
      * Adds two asset amounts. They must refer to the same Asset type.
      * @param other: The other AssetAmount to add to this.
@@ -66,25 +76,6 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
         return new AssetAmount(combined, asset);
     }
 
-//    /**
-//     * Subtracts another instance of AssetAmount from this one. This method will always
-//     * return absolute values.
-//     * @param other: The other asset amount to subtract from this.
-//     * @return: The absolute value of the subtraction of the other minus this asset amount.
-//     */
-//    public AssetAmount subtract(AssetAmount other){
-//        if(!this.getAsset().getObjectId().equals(other.getAsset().getObjectId())){
-//            throw new IncompatibleOperation("Cannot subtract two AssetAmount instances that refer to different assets");
-//        }
-//        UnsignedLong result = null;
-//        if(this.amount.compareTo(other.getAmount()) < 0){
-//            result = other.getAmount().minus(this.amount);
-//        }else{
-//            result = this.amount.minus(other.getAmount());
-//        }
-//        return new AssetAmount(result, asset);
-//    }
-
     /**
      * Multiplies the current amount by a factor provided as the first parameter. The second parameter
      * specifies the rounding method to be used.
@@ -96,6 +87,22 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
         return this;
     }
 
+    public BigDecimal getBalance(Asset asset){
+        if (amount.doubleValue() == 0) {
+            return BigDecimal.ZERO;
+        } else {
+            return new BigDecimal(amount.toString() +"E-"+asset.getPrecision());
+        }
+    }
+
+    public BigDecimal toBalance(BigDecimal floatAmount , Asset asset){
+        if (floatAmount.doubleValue() == 0) {
+            return BigDecimal.ZERO;
+        } else {
+            BigDecimal r =  floatAmount.multiply(new BigDecimal("1E"+asset.getPrecision()));
+            return r.divideToIntegralValue(BigDecimal.ONE);
+        }
+    }
 
 
     public void setAmount(BigDecimal amount){
@@ -135,7 +142,7 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
     @Override
     public JsonObject toJsonObject() {
         JsonObject jsonAmount = new JsonObject();
-        jsonAmount.addProperty(KEY_AMOUNT, amount);
+        jsonAmount.addProperty(KEY_AMOUNT, amount.toPlainString());
         jsonAmount.addProperty(KEY_ASSET_ID, asset.getObjectId());
         return jsonAmount;
     }
@@ -148,7 +155,7 @@ public class AssetAmount implements ByteSerializable, JsonSerializable {
         @Override
         public JsonElement serialize(AssetAmount assetAmount, Type type, JsonSerializationContext jsonSerializationContext) {
             JsonObject obj = new JsonObject();
-            obj.addProperty(KEY_AMOUNT, assetAmount.amount);
+            obj.addProperty(KEY_AMOUNT, assetAmount.amount.toPlainString());
             obj.addProperty(KEY_ASSET_ID, assetAmount.asset.getObjectId());
             return obj;
         }

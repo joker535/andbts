@@ -12,8 +12,10 @@ import java.security.Security;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 import cn.guye.bitshares.BtsApi;
+import cn.guye.bitshares.RPC;
 import cn.guye.bitshares.models.AccountOptions;
 import cn.guye.bitshares.models.AccountTransactionHistory;
 import cn.guye.bitshares.models.Asset;
@@ -32,6 +34,9 @@ import cn.guye.tools.jrpclib.JRpcError;
 import cn.guye.tools.jrpclib.RpcNotice;
 import cn.guye.tools.jrpclib.RpcReturn;
 
+import static cn.guye.bitshares.BtsApi.STATUS_CONNECTED;
+import static cn.guye.bitshares.BtsApi.STATUS_CONNECTION;
+
 /**
  * Created by nieyu2 on 18/1/15.
  */
@@ -48,6 +53,9 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
     private EventBus eventBus = EventBus.getDefault();
 
     private ConcurrentHashMap<Long , BtsRequest> requests = new ConcurrentHashMap<>();
+
+    private ConcurrentLinkedDeque<BtsRequest> paddingRequests = new ConcurrentLinkedDeque<>();
+    private long firstCall;
 
     private BtsContorler(){
         dataCenter = new DataCenter();
@@ -92,27 +100,7 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
 
         String[] assets = BtsApp.instance.getResources().getStringArray(R.array.assets);//TODO config
 
-        BtsRequest request = BtsRequestHelper.lookup_asset_symbols(assets, new BtsRequest.CallBack() {
-            @Override
-            public void onResult(BtsRequest request, JsonElement data) {
-
-                Asset[] assetarry ;
-                JsonArray array = data.getAsJsonArray();
-                assetarry = new Asset[array.size()];
-                Asset.AssetDeserializer deserializer = new Asset.AssetDeserializer();
-                for (int i = 0 ;i< assetarry.length ; i++){
-                    assetarry[i] = deserializer.deserialize(array.get(i),Asset.class,null);
-                }
-                dataCenter.addData(assetarry);
-                eventBus.post(new BtsConnectEvent(api.getStatus(),"onOpen"));
-            }
-
-            @Override
-            public void onError(JRpcError error) {
-
-            }
-        });
-        send(request);
+        firstCall = api.call(api.getApiId(RPC.CALL_DATABASE),RPC.CALL_LOOKUP_ASSET_SYMBOLS,new Object[]{assets});
     }
 
     @Override
@@ -136,12 +124,29 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
             requests.remove(request.getId());
 
         }else{
+            if(result.getCall().getId() == firstCall){
+                Asset[] assetarry ;
+                JsonArray array = result.getResult().getAsJsonArray();
+                assetarry = new Asset[array.size()];
+                Asset.AssetDeserializer deserializer = new Asset.AssetDeserializer();
+                for (int i = 0 ;i< assetarry.length ; i++){
+                    assetarry[i] = deserializer.deserialize(array.get(i),Asset.class,null);
+                }
+                dataCenter.addData(assetarry);
 
-            BtsRequest request = requests.get(result.getId());
-            if(request != null && request.getCallBack() != null){
-                request.getCallBack().onResult(request, result.getResult());
+                for (BtsRequest r:
+                     paddingRequests) {
+                    send(r);
+                }
+
+                eventBus.post(new BtsConnectEvent(api.getStatus(),"onOpen"));
+            }else{
+                BtsRequest request = requests.get(result.getId());
+                if(request != null && request.getCallBack() != null){
+                    request.getCallBack().onResult(request, result.getResult());
+                }
+                requests.remove(request.getId());
             }
-            requests.remove(request.getId());
         }
     }
 
@@ -156,9 +161,22 @@ public class BtsContorler implements BtsApi.BtsRpcListener, BtsApi.DataListener 
     }
 
     public BtsRequest send(BtsRequest btsRequest){
-        long id = api.call(api.getApiId(btsRequest.getApi()),btsRequest.getMethod() ,btsRequest.getParams());
-        btsRequest.setId(id);
-        requests.put(id,btsRequest);
+        if(api.getStatus() == STATUS_CONNECTION){
+            paddingRequests.add(btsRequest);
+        }else if(api.getStatus() == STATUS_CONNECTED){
+            long id = api.call(api.getApiId(btsRequest.getApi()),btsRequest.getMethod() ,btsRequest.getParams());
+            btsRequest.setId(id);
+            requests.put(id,btsRequest);
+            return btsRequest;
+        }else{
+            api = new BtsApi("wss://bitshares-api.wancloud.io/ws");
+            api.addBtsListener(this);
+            api.addDataListener(this);
+            api.start();
+
+            paddingRequests.add(btsRequest);
+        }
+
         return btsRequest;
     }
 

@@ -1,5 +1,8 @@
 package cn.guye.bts.contorl;
 
+import android.telecom.Call;
+
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 
 import java.io.Serializable;
@@ -125,7 +128,7 @@ public class BtsRequestHelper {
         return new BtsRequest(api,CALL_GET_FULL_ACCOUNTS ,listParams.toArray(), callBack);
     }
 
-    public static BtsRequest get_required_fees(String api, BaseOperation[] o, String asset, BtsRequest.CallBack  callBack) {
+    public static BtsRequest get_required_fees(String api, JsonElement[] o, String asset, BtsRequest.CallBack  callBack) {
         List<Object> listParams = new ArrayList<>();
         listParams.add(o);
         listParams.add(asset);
@@ -136,15 +139,14 @@ public class BtsRequestHelper {
         return new BtsRequest(api,CALL_GET_DYNAMIC_GLOBAL_PROPERTIES ,new Object[]{}, callBack);
     }
 
-    public static BtsRequest verify_authority(String api, JsonObject tx, BtsRequest.CallBack  callBack) {
+    public static BtsRequest verify_authority(JsonObject tx, BtsRequest.CallBack  callBack) {
         List<Object> listParams = new ArrayList<>();
         listParams.add(tx);
-        return new BtsRequest(api,CALL_VALIDATE_TRANSACTION ,listParams.toArray(), callBack);
+        return new BtsRequest(CALL_DATABASE,CALL_VALIDATE_TRANSACTION ,listParams.toArray(), callBack);
     }
 
-    public static BtsRequest broadcast_transaction_with_callback( JsonObject tx, long cb , BtsRequest.CallBack  callBack) {
+    public static BtsRequest broadcast_transaction( JsonObject tx , BtsRequest.CallBack  callBack) {
         List<Object> listParams = new ArrayList<>();
-        listParams.add(cb);
         listParams.add(tx);
         return new BtsRequest(CALL_NETWORK_BROADCAST,CALL_BROADCAST_TRANSACTION ,listParams.toArray(), callBack);
     }

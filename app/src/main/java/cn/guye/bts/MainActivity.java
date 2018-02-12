@@ -1,11 +1,9 @@
 package cn.guye.bts;
 
 import android.Manifest;
-import android.annotation.TargetApi;
-import android.app.ActionBar;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.BottomNavigationView;
@@ -14,12 +12,8 @@ import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.ArrayAdapter;
-import android.widget.SpinnerAdapter;
-import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.gson.JsonArray;
@@ -40,13 +34,13 @@ import cn.guye.bts.contorl.BtsRequest;
 import cn.guye.bts.contorl.BtsRequestHelper;
 import cn.guye.bts.contorl.MyWallet;
 import cn.guye.bts.view.CustomDialog;
-import cn.guye.tools.jrpclib.JRpc;
 import cn.guye.tools.jrpclib.JRpcError;
-import cn.guye.tools.jrpclib.RpcNotice;
+
+import static cn.guye.bitshares.BtsApi.STATUS_CONNECTED;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Class[] tabClass = {WalletFragment.class, MarketFragment.class, MyAccountFrament.class};
+    private Class[] tabClass = {WalletFragment.class, MarketFragment.class, ExchangeFrament.class};
     private CustomDialog dialog;
 
     private BottomNavigationView.OnNavigationItemSelectedListener mOnNavigationItemSelectedListener
@@ -116,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void run() {
                 BtsContorler contorler = BtsContorler.getInstance();
-                if (contorler.getStatus() != BtsApi.STATUS_CONNECTED) {//TODO more switch
+                if (contorler.getStatus() != STATUS_CONNECTED) {//TODO more switch
                     contorler.start();
                     dialog = new CustomDialog(MainActivity.this, R.style.CustomDialog);
                     dialog.show();
@@ -188,43 +182,52 @@ public class MainActivity extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void messageEventBus(BtsContorler.BtsConnectEvent e) {
+        if(e.status == STATUS_CONNECTED){
+            List<String> account = MyWallet.getInstance().getAccounts();
 
-        List<String> account = MyWallet.getInstance().getAccounts();
-        BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE, account.toArray(new String[]{}), false, new BtsRequest.CallBack() {
-            @Override
-            public void onResult(BtsRequest request, JsonElement data) {
-                JsonArray array = data.getAsJsonArray();
+//            SharedPreferences sp = getSharedPreferences("bts",MODE_PRIVATE);
+//            String accounts = sp.getString("fav","");
+//            String[] as = accounts.split(",");
+//            for (String a:
+//                    as) {
+//                if(!account.contains(a)){
+//                    account.add(a.trim());
+//                }
+//            }
 
-                List<FullAccountObject> fullAccountObject = new ArrayList<>();
-                final StringBuilder sb = new StringBuilder();
-                for (int i  = 0 ; i < array.size() ; i++) {
-                    FullAccountObject f = BtsContorler.getInstance().parse(array.get(i).getAsJsonArray().get(1), FullAccountObject.class);
-                    fullAccountObject.add(f);
-                }
-                MyWallet.getInstance().setAccountObject(fullAccountObject);
-                EventBus.getDefault().post(MyWallet.getInstance());
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (dialog != null && dialog.isShowing()) {
-                            dialog.dismiss();
-                        }
+            BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE, account.toArray(new String[]{}), false, new BtsRequest.CallBack() {
+                @Override
+                public void onResult(BtsRequest request, JsonElement data) {
+                    JsonArray array = data.getAsJsonArray();
 
-                        if (e.status != BtsApi.STATUS_CONNECTED) {
-                            Toast.makeText(MainActivity.this, e.desc, Toast.LENGTH_SHORT).show();
-                        }
+                    List<FullAccountObject> fullAccountObject = new ArrayList<>();
+                    final StringBuilder sb = new StringBuilder();
+                    for (int i  = 0 ; i < array.size() ; i++) {
+                        FullAccountObject f = BtsContorler.getInstance().parse(array.get(i).getAsJsonArray().get(1), FullAccountObject.class);
+                        fullAccountObject.add(f);
                     }
-                });
-            }
+                    MyWallet.getInstance().setAccountObject(fullAccountObject);
+                    EventBus.getDefault().post(MyWallet.getInstance());
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (dialog != null && dialog.isShowing()) {
+                                dialog.dismiss();
+                            }
 
-            @Override
-            public void onError(JRpcError error) {
+                            if (e.status != STATUS_CONNECTED) {
+                                Toast.makeText(MainActivity.this, e.desc, Toast.LENGTH_SHORT).show();
+                            }
+                        }
+                    });
+                }
 
-            }
-        });
-        BtsContorler.getInstance().send(r);
+                @Override
+                public void onError(JRpcError error) {
+
+                }
+            });
+            BtsContorler.getInstance().send(r);
+        }
     }
-
-
-
 }

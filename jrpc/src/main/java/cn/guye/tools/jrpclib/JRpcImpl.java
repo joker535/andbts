@@ -1,5 +1,6 @@
 package cn.guye.tools.jrpclib;
 
+import java.net.SocketException;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
@@ -72,6 +73,7 @@ public class JRpcImpl implements JRpc {
 		@Override
 		public void onClosed(WebSocket webSocket, int code, String reason) {
 			System.out.println("closed : " + reason);
+			handle.onDisconnect(new SocketException(code + reason));
 		}
 
 		@Override
@@ -82,6 +84,7 @@ public class JRpcImpl implements JRpc {
 		@Override
 		public void onFailure(WebSocket webSocket, Throwable t, Response response) {
 			t.printStackTrace();
+			handle.onDisconnect(t);
 		}
 
 		@Override

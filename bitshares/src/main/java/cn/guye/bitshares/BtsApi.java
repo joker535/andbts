@@ -168,7 +168,9 @@ public class BtsApi {
         @Override
         public void onResult(RpcReturn result) {
             if(result.getError() != null){
-
+                for (DataListener dl:dataLinstener) {
+                    dl.onResult(result);
+                }
             }else{
                 long id = result.getId();
                 if(RPC.CALL_LOGIN.equals(callIds.get(id))){

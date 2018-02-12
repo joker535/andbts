@@ -12,6 +12,7 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,7 +49,7 @@ public class MyWallet {
         this.accountObject = accountObject;
     }
 
-    private List<FullAccountObject> accountObject;
+    private List<FullAccountObject> accountObject = Collections.EMPTY_LIST;
 
     public List<String> getAccounts() {
         return accounts;

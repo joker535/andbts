@@ -5,6 +5,7 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Environment;
 import android.support.annotation.Nullable;
@@ -67,6 +68,8 @@ import cn.guye.bitshares.wallet.types;
 import cn.guye.bts.contorl.MyWallet;
 import cn.guye.tools.jrpclib.JRpcError;
 
+import static android.content.Context.MODE_PRIVATE;
+
 /**
  * Created by nieyu2 on 18/1/15.
  */
@@ -98,13 +101,7 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
 
     @Override
     public void onResult(BtsRequest request, JsonElement data) {
-        if (request.getMethod().equals(RPC.CALL_GET_ACCOUNT_BY_NAME)) {
-            AccountObject my = BtsContorler.getInstance().parse(data, AccountObject.class);
-
-            BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE, new String[]{"guye535", "zipian3"}, false, this);
-            BtsContorler.getInstance().send(r);
-
-        } else if (request.getMethod().equals(RPC.CALL_GET_FULL_ACCOUNTS)) {
+       if (request.getMethod().equals(RPC.CALL_GET_FULL_ACCOUNTS)) {
 //            JsonArray array = data.getAsJsonArray();
 //
 //            fullAccountObject = new FullAccountObject[array.size()];
@@ -235,6 +232,15 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
     public void onClick(View v) {
         if (v == update) {
             List<String> account = MyWallet.getInstance().getAccounts();
+//            SharedPreferences sp = getActivity().getSharedPreferences("bts",MODE_PRIVATE);
+//            String accounts = sp.getString("fav","");
+//            String[] as = accounts.split(",");
+//            for (String a:
+//                    as) {
+//                if(!account.contains(a)){
+//                    account.add(a.trim());
+//                }
+//            }
             BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE, account.toArray(new String[]{}), false, new BtsRequest.CallBack() {
                 @Override
                 public void onResult(BtsRequest request, JsonElement data) {
@@ -310,7 +316,7 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
                                             AlertDialog.Builder inputDialog =
                                                     new AlertDialog.Builder(getActivity());
                                             inputDialog.setTitle("我是一个输入Dialog").setView(editText);
-                                            inputDialog.setPositiveButton("确定",
+                                            inputDialog.setPositiveButton("ok",
                                                     new DialogInterface.OnClickListener() {
                                                         @Override
                                                         public void onClick(DialogInterface dialog, int which) {
@@ -321,7 +327,7 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
                                                             fee.add(new AssetAmount(new BigDecimal(9),new GrapheneObject("1.3.0")));
                                                             transaction.setFees(fee);
 
-                                                            BtsRequest r = BtsRequestHelper.verify_authority(RPC.CALL_DATABASE, transaction.toJsonObject(), new BtsRequest.CallBack() {
+                                                            BtsRequest r = BtsRequestHelper.broadcast_transaction(transaction.toJsonObject(),new BtsRequest.CallBack() {
                                                                 @Override
                                                                 public void onResult(BtsRequest request, JsonElement data) {
 
@@ -343,7 +349,7 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
                                     fee.add(new AssetAmount(new BigDecimal(9),new GrapheneObject("1.3.0")));
                                     transaction.setFees(fee);
 
-                                    BtsRequest r = BtsRequestHelper.verify_authority(RPC.CALL_DATABASE, transaction.toJsonObject(), new BtsRequest.CallBack() {
+                                    BtsRequest r = BtsRequestHelper.verify_authority( transaction.toJsonObject(), new BtsRequest.CallBack() {
                                         @Override
                                         public void onResult(BtsRequest request, JsonElement data) {
                                             Toast.makeText(getActivity(), data.toString(), Toast.LENGTH_SHORT).show();
