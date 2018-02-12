@@ -25,6 +25,7 @@ import static cn.guye.bitshares.RPC.CALL_GET_ACCOUNT_BY_NAME;
 import static cn.guye.bitshares.RPC.CALL_GET_ACCOUNT_HISTORY;
 import static cn.guye.bitshares.RPC.CALL_GET_DYNAMIC_GLOBAL_PROPERTIES;
 import static cn.guye.bitshares.RPC.CALL_GET_FULL_ACCOUNTS;
+import static cn.guye.bitshares.RPC.CALL_GET_LIMIT_ORDERS;
 import static cn.guye.bitshares.RPC.CALL_GET_MARKET_HISTORY;
 import static cn.guye.bitshares.RPC.CALL_GET_PROPOSED_TRANSACTIONS;
 import static cn.guye.bitshares.RPC.CALL_GET_REQUIRED_FEES;
@@ -137,6 +138,14 @@ public class BtsRequestHelper {
 
     public static BtsRequest get_dynamic_global_properties(String api, BtsRequest.CallBack  callBack) {
         return new BtsRequest(api,CALL_GET_DYNAMIC_GLOBAL_PROPERTIES ,new Object[]{}, callBack);
+    }
+
+    public static BtsRequest get_limit_orders(String base,String qoute,int limit, BtsRequest.CallBack  callBack) {
+        List<Object> listParams = new ArrayList<>();
+        listParams.add(base);
+        listParams.add(qoute);
+        listParams.add(limit);
+        return new BtsRequest(CALL_DATABASE,CALL_GET_LIMIT_ORDERS ,listParams.toArray(), callBack);
     }
 
     public static BtsRequest verify_authority(JsonObject tx, BtsRequest.CallBack  callBack) {

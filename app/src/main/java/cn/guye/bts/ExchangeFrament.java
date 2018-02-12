@@ -37,6 +37,7 @@ import cn.guye.bts.contorl.BtsRequestHelper;
 import cn.guye.bts.contorl.MyWallet;
 import cn.guye.bts.view.CustomDialog;
 import cn.guye.tools.jrpclib.JRpcError;
+import okhttp3.Call;
 
 import static org.spongycastle.asn1.x500.style.RFC4519Style.o;
 
@@ -123,7 +124,8 @@ public class ExchangeFrament extends BaseFragment implements View.OnClickListene
                                 }
 
                             }
-
+//                            BtsRequest r = BtsRequestHelper.get_limit_orders(baseAsset.getObjectId(),targetAsset.getObjectId(),20,new LimitOrderCallback());
+//                            BtsContorler.getInstance().send(r);
                         }
                     }).create();
             dialog.show();
@@ -255,7 +257,7 @@ public class ExchangeFrament extends BaseFragment implements View.OnClickListene
                                         List<BaseOperation> ll = new ArrayList<>();
                                         ll.add(op);
                                         Transaction transaction = new Transaction(MyWallet.getInstance().getKey(op.getSeller().getObjectId()),new BlockData(d.head_block_number,d.head_block_id,ex),ll);
-                                        BtsRequest r = BtsRequestHelper.verify_authority(transaction.toJsonObject(),new TransactionCallback());
+                                        BtsRequest r = BtsRequestHelper.broadcast_transaction(transaction.toJsonObject(),new TransactionCallback());
                                         BtsContorler.getInstance().send(r);
                                     }
                                 }).show();
@@ -286,6 +288,19 @@ public class ExchangeFrament extends BaseFragment implements View.OnClickListene
         @Override
         public void onError(JRpcError error) {
             error(error);
+        }
+    }
+
+    private class LimitOrderCallback implements BtsRequest.CallBack{
+
+        @Override
+        public void onResult(BtsRequest request, JsonElement data) {
+            System.out.println(data.toString());
+        }
+
+        @Override
+        public void onError(JRpcError error) {
+
         }
     }
 
