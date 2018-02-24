@@ -1,12 +1,14 @@
 package cn.guye.bts;
 
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.support.annotation.Nullable;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.TextView;
@@ -39,7 +41,7 @@ import cn.guye.tools.jrpclib.JRpcError;
  * Created by nieyu2 on 18/1/15.
  */
 
-public class MarketFragment extends BaseFragment implements BtsRequest.CallBack ,DataCenter.DataChangeHandler {
+public class MarketFragment extends BaseFragment implements BtsRequest.CallBack ,DataCenter.DataChangeHandler, AdapterView.OnItemClickListener {
 
     private ListView listView ;
     private Map<String , Asset> assets = new HashMap<>();
@@ -62,6 +64,7 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
         BtsContorler.getInstance().send(request);
         BtsContorler.getInstance().regDataChange(this);
         listView = (ListView) (rootView.findViewById(R.id.list_view));
+        listView.setOnItemClickListener(this);
         adapter = new MarketAdapter();
         listView.setAdapter(adapter);
 
@@ -229,6 +232,13 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
                 }
             }
         }
+    }
+
+    @Override
+    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+        Intent i = new Intent(getActivity(),MarketDetailActivity.class);
+        i.putExtra("id",((Asset)adapter.getItem(position)).getObjectId());
+        startActivity(i);
     }
 
     private class MarketAdapter extends BaseAdapter{

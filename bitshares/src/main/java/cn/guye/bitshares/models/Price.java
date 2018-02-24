@@ -19,7 +19,7 @@ public class Price {
 
     public BigDecimal base2Quote(Asset b , Asset q){
         try {
-            return get_asset_amount(base.getAmount(), b).divide(get_asset_amount(quote.getAmount(), q),q.getPrecision(), RoundingMode.DOWN);
+            return get_asset_amount(base.getAmount(), b).divide(get_asset_amount(quote.getAmount(), q),b.getPrecision(), RoundingMode.DOWN);
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -36,7 +36,7 @@ public class Price {
 
     public BigDecimal quote2Base(Asset b , Asset q){
         try {
-            return get_asset_amount(quote.getAmount(), q).divide(get_asset_amount(base.getAmount(), b),b.getPrecision(), RoundingMode.DOWN);
+            return get_asset_amount(quote.getAmount(), q).divide(get_asset_amount(base.getAmount(), b),q.getPrecision(), RoundingMode.DOWN);
         } catch (Exception e) {
             e.printStackTrace();
             return null;

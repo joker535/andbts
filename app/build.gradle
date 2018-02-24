@@ -55,5 +55,6 @@ dependencies {
     compile 'com.android.support:support-vector-drawable:26+'
     compile 'org.greenrobot:eventbus:3.0.0'
     compile 'com.madgag.spongycastle:core:1.52.0.0'
+    compile 'com.github.PhilJay:MPAndroidChart:v3.0.1'
     compile project(':bitshares')
 }

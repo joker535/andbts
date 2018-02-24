@@ -59,6 +59,7 @@ import cn.guye.bitshares.models.chain.dynamic_global_property_object;
 import cn.guye.bitshares.operations.BaseOperation;
 import cn.guye.bitshares.operations.LimitOrderCancelOperation;
 import cn.guye.bitshares.operations.LimitOrderCreateOperation;
+import cn.guye.bitshares.operations.LimitOrderFullOperation;
 import cn.guye.bts.contorl.BtsContorler;
 import cn.guye.bts.contorl.BtsRequest;
 import cn.guye.bts.contorl.BtsRequestHelper;
@@ -193,31 +194,8 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
 
     @Subscribe
     public void onBtsEvent(MyWallet e) {
-//        final StringBuilder sb = new StringBuilder();
+
         List<FullAccountObject> as = e.getAccountObject();
-//        for (int i = 0; i < as.size(); i++) {
-//            sb.append("======================\n");
-//            sb.append(as.get(i).account.name).append("\n");
-//            for (FullAccountObject.Balances b :
-//                    as.get(i).balances) {
-//                Asset base = (Asset) BtsContorler.getInstance().getDataSync(b.asset_type);
-//                String bName = base == null ? b.asset_type : base.getSymbol();
-//                String bl = base == null ? b.balance.toString() : Price.get_asset_amount(b.balance, base).toString();
-//                sb.append(bName).append(" : ").append(bl).append("\n");
-//            }
-//
-//            sb.append("order:\n");
-//            for (LimitOrder lo :
-//                    as.get(i).limit_orders) {
-//                Price p = lo.getSellPrice();
-//                Asset base = (Asset) BtsContorler.getInstance().getDataSync(p.base.getAsset().getObjectId());
-//                Asset quote = (Asset) BtsContorler.getInstance().getDataSync(p.quote.getAsset().getObjectId());
-//                String bName = base == null ? p.base.getAsset().getObjectId() : base.getSymbol();
-//                String qName = quote == null ? p.quote.getAsset().getObjectId() : quote.getSymbol();
-//                String amount = base == null ? "-" : Price.get_asset_amount(p.base.getAmount(), base).toString();
-//                sb.append(bName).append("/").append(qName).append(" : ").append(lo.getSellPrice().base2Quote(base, quote)).append(" for sell:").append(amount).append("\n");
-//            }
-//        }
 
         getActivity().runOnUiThread(new Runnable() {
             @Override
@@ -226,21 +204,38 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
                 adapter.notifyDataSetChanged();
             }
         });
+        BtsRequest rh = BtsRequestHelper.get_account_history( as.get(0).account.getObjectId(), null,null,100, new BtsRequest.CallBack() {
+
+            @Override
+            public void onResult(BtsRequest request, JsonElement data) {
+                final ArrayList<OperationHistory> list = new ArrayList<>();
+                JsonArray array = data.getAsJsonArray();
+                for (JsonElement j : array){
+                    OperationHistory op = BtsContorler.getInstance().parse(j,OperationHistory.class);
+                    if(op.op instanceof LimitOrderFullOperation){
+                        list.add(op);
+                    }
+                }
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        adapter.setOps(list);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(JRpcError error) {
+
+            }
+        });
+        BtsContorler.getInstance().send(rh);
     }
 
     @Override
     public void onClick(View v) {
         if (v == update) {
             List<String> account = MyWallet.getInstance().getAccounts();
-//            SharedPreferences sp = getActivity().getSharedPreferences("bts",MODE_PRIVATE);
-//            String accounts = sp.getString("fav","");
-//            String[] as = accounts.split(",");
-//            for (String a:
-//                    as) {
-//                if(!account.contains(a)){
-//                    account.add(a.trim());
-//                }
-//            }
             BtsRequest r = BtsRequestHelper.get_full_accounts(RPC.CALL_DATABASE, account.toArray(new String[]{}), false, new BtsRequest.CallBack() {
                 @Override
                 public void onResult(BtsRequest request, JsonElement data) {
@@ -254,7 +249,6 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
                     }
                     MyWallet.getInstance().setAccountObject(fullAccountObject);
                     onBtsEvent(MyWallet.getInstance());
-
                 }
 
                 @Override
@@ -266,7 +260,6 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
         } else if (v == myhistory) {
             Intent i = new Intent(getActivity(), AccountHistoryActivity.class);
             i.putExtra("id", MyWallet.getInstance().getAccountObject().get(0).account.getObjectId());
-//            i.putExtra("id","1.2.495937");
             startActivity(i);
 
         }else{
@@ -387,6 +380,7 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
     private class MyAdapter extends BaseAdapter {
 
         private List<FullAccountObject> list = Collections.EMPTY_LIST;
+        private List<OperationHistory> ops= Collections.EMPTY_LIST;
 
         @Override
         public int getCount() {
@@ -406,9 +400,14 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
             AccountView accountView = new AccountView(getActivity());
-            accountView.update(list.get(position));
+            accountView.update(list.get(position),ops);
 
             return accountView;
+        }
+
+        public void setOps(ArrayList<OperationHistory> ops) {
+            this.ops = ops;
+            notifyDataSetChanged();
         }
     }
 
@@ -430,7 +429,7 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
 
         }
 
-        private void update(FullAccountObject a) {
+        private void update(FullAccountObject a, List<OperationHistory> ops) {
             removeAllViews();
             if (name == null) {
                 name = new TextView(getActivity());
@@ -459,7 +458,21 @@ public class WalletFragment extends BaseFragment implements BtsRequest.CallBack,
                 Asset quote = (Asset) BtsContorler.getInstance().getDataSync(p.quote.getAsset().getObjectId());
                 String bName = base == null ? p.base.getAsset().getObjectId() : base.getSymbol();
                 String qName = quote == null ? p.quote.getAsset().getObjectId() : quote.getSymbol();
-                String amount = base == null ? "-" : Price.get_asset_amount(p.base.getAmount(), base).toString();
+
+
+                BigDecimal realAmount = p.base.getAmount();
+                for (OperationHistory op:
+                     ops) {
+                    if(op.op instanceof LimitOrderFullOperation){
+                        LimitOrderFullOperation lop = (LimitOrderFullOperation) op.op;
+                        if(a.limit_orders[i].getObjectId().equals(lop.getOrderId())){
+                            realAmount = realAmount.subtract(lop.getPays().getAmount());
+                        }
+                    }
+
+                }
+                String amount = base == null ? "-" : Price.get_asset_amount(realAmount, base).toString();
+
                 sb = new StringBuilder();
                 sb.append(bName).append("/").append(qName).append(" : ").append(a.limit_orders[i].getSellPrice().base2Quote(base, quote)).append(" for sell:").append(amount).append("\n");
                 orders[i].setText(sb.toString());

@@ -59,6 +59,11 @@ public class LimitOrderFullOperation extends BaseOperation {
         receives = minToReceive;
     }
 
+    public String getOrderId() {
+        return order_id;
+    }
+
+
     @Override
     public byte[] toBytes() {
         return new byte[0];
@@ -72,6 +77,10 @@ public class LimitOrderFullOperation extends BaseOperation {
     @Override
     public void setFee(AssetAmount assetAmount) {
         fee = assetAmount;
+    }
+
+    public void setOrderId(String orderId) {
+        this.order_id = orderId;
     }
 
     public static class LimitOrderFullDeserializer implements JsonDeserializer<LimitOrderFullOperation> {
@@ -98,9 +107,10 @@ public class LimitOrderFullOperation extends BaseOperation {
                 String seller = jsonObject.get(KEY_SELLER).getAsString();
                 AssetAmount amountToSell = context.deserialize(jsonObject.get(KEY_AMOUNT_TO_SELL), AssetAmount.class);
                 AssetAmount minToReceive = context.deserialize(jsonObject.get(KEY_MIN_TO_RECEIVE), AssetAmount.class);
-
+                String orderId = jsonObject.get("order_id").getAsString();
                 // Creating an instance of the LimitOrderCreateOperation and setting the fee
                 LimitOrderFullOperation operation = new LimitOrderFullOperation(seller, amountToSell, minToReceive);
+                operation.setOrderId(orderId);
                 operation.setFee(fee);
                 return operation;
             }
