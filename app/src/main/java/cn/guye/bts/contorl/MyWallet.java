@@ -1,5 +1,7 @@
 package cn.guye.bts.contorl;
 
+import android.content.Context;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -174,7 +176,7 @@ public class MyWallet {
     }
 
     private void save() {
-        File dir = BtsApp.instance.getDataDir();
+        File dir = BtsApp.instance.getDir("data", Context.MODE_PRIVATE);
         dir = new File(dir,"stor");
         BufferedWriter bufferedWriter = null;
         try {
@@ -246,7 +248,7 @@ public class MyWallet {
     }
 
     public static MyWallet load(){
-        File dir = BtsApp.instance.getDataDir();
+        File dir = BtsApp.instance.getDir("data", Context.MODE_PRIVATE);
         dir = new File(dir,"stor");
         BufferedReader bufferedReader = null;
         try {

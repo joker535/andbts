@@ -1,6 +1,7 @@
 package cn.guye.bts;
 
 import android.app.AlertDialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -22,6 +23,7 @@ import cn.guye.bitshares.models.AssetAmount;
 import cn.guye.bitshares.models.GrapheneObject;
 import cn.guye.bitshares.models.Transaction;
 import cn.guye.bitshares.models.chain.BlockData;
+import cn.guye.bts.app.BtsApp;
 import cn.guye.bts.contorl.BtsContorler;
 import cn.guye.bts.contorl.BtsRequest;
 import cn.guye.bts.contorl.BtsRequestHelper;
@@ -47,7 +49,8 @@ public class SettingActivity extends AppCompatActivity implements View.OnClickLi
     @Override
     public void onClick(View v) {
         if(v == logout){
-            new File(getDataDir(),"stor").delete();
+            File dir = getDir("data", Context.MODE_PRIVATE);
+            new File(dir,"stor").delete();
             Toast.makeText(this,"logout ok",Toast.LENGTH_SHORT).show();
         }else if(v == addFav){
             final EditText editText = new EditText(this);

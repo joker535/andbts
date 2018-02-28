@@ -11,6 +11,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.google.gson.JsonArray;
@@ -41,7 +42,7 @@ import cn.guye.tools.jrpclib.JRpcError;
  * Created by nieyu2 on 18/1/15.
  */
 
-public class MarketFragment extends BaseFragment implements BtsRequest.CallBack ,DataCenter.DataChangeHandler, AdapterView.OnItemClickListener {
+public class MarketFragment extends BaseFragment implements BtsRequest.CallBack ,DataCenter.DataChangeHandler {
 
     private ListView listView ;
     private Map<String , Asset> assets = new HashMap<>();
@@ -64,7 +65,6 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
         BtsContorler.getInstance().send(request);
         BtsContorler.getInstance().regDataChange(this);
         listView = (ListView) (rootView.findViewById(R.id.list_view));
-        listView.setOnItemClickListener(this);
         adapter = new MarketAdapter();
         listView.setAdapter(adapter);
 
@@ -166,9 +166,9 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
                     }
                     adapter.assetList =uiList;
                     adapter.notifyDataSetChanged();
-                    BtsRequest btsRequest = BtsRequestHelper.set_subscribe_callback(null);
+//                    BtsRequest btsRequest = BtsRequestHelper.set_subscribe_callback(null);
 
-                    BtsContorler.getInstance().send(btsRequest);
+//                    BtsContorler.getInstance().send(btsRequest);
                 }else if(request.getMethod().equals(RPC.CALL_GET_MARKET_HISTORY)){
                     BucketObject[] bucketObjects ;
                     JsonArray array = data.getAsJsonArray();
@@ -234,14 +234,7 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
         }
     }
 
-    @Override
-    public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-        Intent i = new Intent(getActivity(),MarketDetailActivity.class);
-        i.putExtra("id",((Asset)adapter.getItem(position)).getObjectId());
-        startActivity(i);
-    }
-
-    private class MarketAdapter extends BaseAdapter{
+    private class MarketAdapter extends BaseAdapter implements View.OnClickListener {
         private EmptyView emptyView = new EmptyView(getContext());
         public List<Asset> assetList = Collections.EMPTY_LIST;
 
@@ -262,6 +255,17 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
 
         @Override
         public View getView(int position, View convertView, ViewGroup parent) {
+            RelativeLayout view ;
+            if(convertView != null){
+                view = (RelativeLayout) convertView;
+            }else{
+                view = (RelativeLayout) getActivity().getLayoutInflater().inflate(R.layout.view_coin_detail,null);
+            }
+
+            TextView textView = view.findViewById(R.id.content);
+            View kBtn = view.findViewById(R.id.kline);
+            View depBtn = view.findViewById(R.id.depth);
+
             Asset asset = assetList.get(position);
             String message = asset.getSymbol() + " : ";
             HistoryPrice price = prices.get(asset.getObjectId());
@@ -281,9 +285,26 @@ public class MarketFragment extends BaseFragment implements BtsRequest.CallBack 
                     message += v==null?"--":v;
                 }
             }
-            TextView textView = new TextView(getActivity());
             textView.setText(message);
-            return textView;
+
+            kBtn.setOnClickListener(this);
+            kBtn.setTag(asset.getObjectId());
+            depBtn.setOnClickListener(this);
+            depBtn.setTag(asset.getObjectId());
+            return view;
+        }
+
+        @Override
+        public void onClick(View v) {
+            if(v.getId() == R.id.kline){
+                Intent i = new Intent(getActivity(),KLineActivity.class);
+                i.putExtra("id", (String) v.getTag());
+                startActivity(i);
+            }else{
+                Intent i = new Intent(getActivity(),MarketDetailActivity.class);
+                i.putExtra("id", (String) v.getTag());
+                startActivity(i);
+            }
         }
     }
 }

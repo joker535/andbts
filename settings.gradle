@@ -1,1 +1,1 @@
-include ':app', ':jrpc', ':bitshares'
+include ':app', ':jrpc', ':bitshares','chart'

@@ -1,0 +1,35 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:1-13:12
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:1-13:12
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:1-13:12
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:1-13:12
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:1-13:12
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:1-13:12
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:1-13:12
+	package
+		ADDED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:11-49
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+	android:versionName
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+		ADDED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:1-13:12
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+	android:versionCode
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+		ADDED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml:2:1-13:12
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+uses-sdk
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+	android:targetSdkVersion
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+		ADDED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+		ADDED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
+		INJECTED from /Users/nieyu/wrokspace/andbts/chart/AndroidManifest.xml
